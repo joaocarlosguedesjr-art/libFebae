@@ -1,9 +1,17 @@
 import { config } from "dotenv";
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
-config();
+// .env.local da Vercel CLI não deve sobrescrever o Neon em .env
+config({ path: ".env", override: true });
 
-const databaseUrl = process.env.DATABASE_URL?.trim();
+let databaseUrl = process.env.DATABASE_URL?.trim();
+if ((!databaseUrl || databaseUrl.includes("localhost")) && existsSync(".env")) {
+  const match = readFileSync(".env", "utf8").match(
+    /^DATABASE_URL=(?:\"([^\"]+)\"|'([^']+)'|(\S+))/m
+  );
+  databaseUrl = match?.[1] ?? match?.[2] ?? match?.[3] ?? "";
+}
 if (!databaseUrl) {
   console.error("DATABASE_URL não encontrada no .env local.");
   process.exit(1);
