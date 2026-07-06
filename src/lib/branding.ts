@@ -1,4 +1,5 @@
 import { INSTITUTION_DEFAULTS, resolveLogoUrl } from "@/lib/institution";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { getAppSettings } from "@/lib/settings";
 
 export const CATALOG_HREF = "/catalogo";
@@ -11,11 +12,7 @@ export type PublicBranding = {
   catalogHref: string;
 };
 
-export function getAppBaseUrl(): string {
-  const url = process.env.NEXTAUTH_URL?.trim();
-  if (url) return url.replace(/\/$/, "");
-  return "http://localhost:3000";
-}
+export { getAppBaseUrl };
 
 export async function getPublicBranding(): Promise<PublicBranding> {
   const settings = await getAppSettings();

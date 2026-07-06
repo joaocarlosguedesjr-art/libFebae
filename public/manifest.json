@@ -1,6 +1,6 @@
 {
-  "name": "Biblioteca — Gestão de Acervo",
-  "short_name": "Biblioteca",
+  "name": "Biblioteca FEABE",
+  "short_name": "FEABE",
   "description": "Sistema de gestão de biblioteca",
   "start_url": "/",
   "display": "standalone",
