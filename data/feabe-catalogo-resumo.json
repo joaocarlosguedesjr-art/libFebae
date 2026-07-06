@@ -1,0 +1,82 @@
+{
+  "sourceFile": "''LIVROS_FEABE__EDITADO_FINAL''(1).xlsx",
+  "generatedAt": "2026-07-05T17:59:31.668Z",
+  "uniqueWorks": 925,
+  "totalCopies": 1161,
+  "workNumberRange": {
+    "from": 1,
+    "to": 925
+  },
+  "multiCopyWorks": 165,
+  "bySection": {
+    "COD": 7,
+    "ROM": 315,
+    "EST": 146,
+    "BIO": 16,
+    "MED": 1,
+    "DIV": 70,
+    "OUT": 370
+  },
+  "topAuthors": [
+    {
+      "code": "ESP",
+      "count": 83
+    },
+    {
+      "code": "EMM",
+      "count": 61
+    },
+    {
+      "code": "FCX",
+      "count": 51
+    },
+    {
+      "code": "JOA",
+      "count": 47
+    },
+    {
+      "code": "RIC",
+      "count": 30
+    },
+    {
+      "code": "ALU",
+      "count": 24
+    },
+    {
+      "code": "DPF",
+      "count": 24
+    },
+    {
+      "code": "MPM",
+      "count": 19
+    },
+    {
+      "code": "HCM",
+      "count": 18
+    },
+    {
+      "code": "CAM",
+      "count": 17
+    },
+    {
+      "code": "LUC",
+      "count": 14
+    },
+    {
+      "code": "JWR",
+      "count": 13
+    },
+    {
+      "code": "LDN",
+      "count": 13
+    },
+    {
+      "code": "MAR",
+      "count": 13
+    },
+    {
+      "code": "JOS",
+      "count": 12
+    }
+  ]
+}
