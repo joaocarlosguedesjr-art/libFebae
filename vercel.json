@@ -1,4 +1,12 @@
 {
   "buildCommand": "node scripts/vercel-build.mjs",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "bibliotecafeabe.com.br" }],
+      "destination": "https://www.bibliotecafeabe.com.br/:path*",
+      "permanent": true
+    }
+  ]
 }

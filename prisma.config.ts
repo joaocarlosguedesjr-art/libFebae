@@ -1,13 +1,13 @@
 import { config } from "dotenv";
 import { defineConfig, env } from "prisma/config";
 
-config({ override: true });
+if (!process.env.VERCEL && !process.env.CI) {
+  config({ override: true });
 
-const isHostedBuild = Boolean(process.env.VERCEL || process.env.CI);
-
-if (!process.env.DATABASE_URL && !isHostedBuild) {
-  process.env.DATABASE_URL =
-    "postgresql://biblioteca:biblioteca@localhost:5432/biblioteca";
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL =
+      "postgresql://biblioteca:biblioteca@localhost:5432/biblioteca";
+  }
 }
 
 export default defineConfig({
