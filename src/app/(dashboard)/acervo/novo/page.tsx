@@ -46,6 +46,7 @@ export default function NovoLivroPage() {
       language: emptyToUndefined(form.get("language")),
       synopsis: emptyToUndefined(form.get("synopsis")),
       notes: emptyToUndefined(form.get("notes")),
+      coverImageUrl: emptyToUndefined(form.get("coverImageUrl")),
       categories,
     };
 
@@ -191,6 +192,20 @@ export default function NovoLivroPage() {
             <CardTitle>Conteúdo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="coverImageUrl">URL da capa</Label>
+              <Input
+                id="coverImageUrl"
+                name="coverImageUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://exemplo.com/capa.jpg"
+              />
+              <p className="text-xs text-slate-500">
+                Link HTTPS público da imagem (ex.: site da editora). Apenas administradores podem
+                cadastrar capas.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="synopsis">Sinopse / Apresentação</Label>
               <Textarea

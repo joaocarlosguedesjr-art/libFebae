@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidCpf, stripCpf } from "@/lib/cpf";
+import { isSafeExternalImageUrl } from "@/lib/safe-image-url";
 
 const optionalString = z
   .string()
@@ -13,6 +14,15 @@ const optionalInt = z
     if (val === undefined || val === "") return undefined;
     const n = typeof val === "number" ? val : parseInt(val, 10);
     return Number.isNaN(n) ? undefined : n;
+  });
+
+const optionalCoverImageUrl = z
+  .string()
+  .max(2048)
+  .optional()
+  .transform((v) => (v === "" || v === undefined ? undefined : v.trim()))
+  .refine((v) => v === undefined || isSafeExternalImageUrl(v), {
+    message: "URL de capa inválida. Use HTTPS de um site público (sem localhost).",
   });
 
 const cpfField = z
@@ -114,6 +124,7 @@ export const bookSchema = z.object({
   language: optionalString,
   synopsis: optionalString,
   notes: optionalString,
+  coverImageUrl: optionalCoverImageUrl,
   categories: z.array(z.string()).optional(),
 });
 

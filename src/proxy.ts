@@ -14,6 +14,11 @@ const adminPaths = [
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
+  if (req.nextUrl.pathname === "/") {
+    const target = req.auth ? "/dashboard" : "/catalogo";
+    return NextResponse.redirect(new URL(target, req.nextUrl.origin));
+  }
+
   if (!req.auth) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
@@ -33,6 +38,7 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/acervo/:path*",
     "/emprestimos/:path*",

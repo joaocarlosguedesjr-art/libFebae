@@ -1,0 +1,29 @@
+{
+  "status": "in_sync",
+  "plan": {
+    "generatedAt": "2026-07-06T23:06:20.618Z",
+    "csv": {
+      "works": 899,
+      "copies": 1161
+    },
+    "database": {
+      "books": 899,
+      "copies": 1161,
+      "activeLoans": 0
+    },
+    "actions": {
+      "booksCreate": 0,
+      "booksUpdate": 0,
+      "copiesCreate": 0,
+      "copiesUpdate": 0,
+      "orphansDelete": 0
+    },
+    "samples": {
+      "booksCreate": [],
+      "booksUpdate": [],
+      "orphans": []
+    },
+    "blockers": [],
+    "alreadyInSync": true
+  }
+}

@@ -564,6 +564,105 @@ export function normalizeText(value: string): string {
     .trim();
 }
 
+/** Chave de título para agrupar a mesma obra */
+export function normalizeTitleKey(title: string): string {
+  return normalizeText(title).replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function toSpiritDisplayName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+  return trimmed
+    .split(/\s+/)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (["de", "da", "do", "das", "dos", "e"].includes(lower)) return lower;
+      if (lower.length <= 3 && word.endsWith(".")) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ")
+    .replace(/\bDe\b/g, "de")
+    .replace(/\bDa\b/g, "da")
+    .replace(/\bDo\b/g, "do")
+    .replace(/\bDas\b/g, "das")
+    .replace(/\bDos\b/g, "dos")
+    .replace(/\bE\b/g, "e");
+}
+
+function canonicalizeSpiritPart(name: string): string {
+  const cleaned = name
+    .trim()
+    .replace(/^esp\.?\s*[-–—]?\s*/i, "")
+    .replace(/^esp[ií]rito\s+(?:conde\s+)?/i, "")
+    .replace(/^írito\s+/i, "")
+    .replace(/^irito\s+/i, "")
+    .trim();
+
+  const norm = normalizeText(cleaned);
+  if (!norm) return name.trim();
+
+  for (const entry of AUTHOR_REGISTRY) {
+    for (const pattern of entry.patterns) {
+      const p = normalizeText(pattern);
+      if (norm === p || norm === normalizeText(entry.group.replace(/\s*—\s*.+$/, ""))) {
+        return entry.group.replace(/\s*—\s*.+$/, "").trim();
+      }
+    }
+  }
+
+  const aliases: Record<string, string> = {
+    "allan kardec": "Allan Kardec",
+    kardec: "Allan Kardec",
+    "andre luiz": "André Luiz",
+    "andré luiz": "André Luiz",
+    alfredo: "Alfredo",
+    "espirito alfredo": "Alfredo",
+    "irito alfredo": "Alfredo",
+    "írito alfredo": "Alfredo",
+    emmanuel: "Emmanuel",
+    "amelia rodrigues": "Amélia Rodrigues",
+    "amélia rodrigues": "Amélia Rodrigues",
+    "humberto de campos": "Humberto de Campos",
+    "espirito humberto de campos": "Humberto de Campos",
+    "joanna de angelis": "Joanna de Ângelis",
+    "joanna de ângelis": "Joanna de Ângelis",
+    lucius: "Lúcius",
+    lúcius: "Lúcius",
+    "espirito lucius": "Lúcius",
+    meimei: "Meimei",
+    hammed: "Hammed",
+    camilo: "Camilo",
+    "bezerra de menezes": "Bezerra de Menezes",
+    "irmao jacob": "Irmão Jacob",
+    "irmão jacob": "Irmão Jacob",
+    "irmao x": "Irmão X",
+    "irmão x": "Irmão X",
+    "j w rochester": "J. W. Rochester",
+    "j. w. rochester": "J. W. Rochester",
+    "espirito conde j w rochester": "J. W. Rochester",
+    "victor hugo": "Victor Hugo",
+    "manoel p de miranda": "Manoel Philomeno de Miranda",
+    "manoel philomeno de miranda": "Manoel Philomeno de Miranda",
+    "richard simonetti": "Richard Simonetti",
+    "leon denis": "Leon Denis",
+    "waldo vieira": "Waldo Vieira",
+    "zilda gama": "Zilda Gama",
+  };
+
+  if (aliases[norm]) return aliases[norm];
+
+  return toSpiritDisplayName(cleaned);
+}
+
+/** Normaliza grafias do autor/espírito espiritual */
+export function normalizeSpiritName(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+
+  const parts = trimmed.split(/\s*[/\\]\s*/).map((part) => canonicalizeSpiritPart(part));
+  return parts.join(" / ");
+}
+
 export function parseFeabeAuthor(raw: string): {
   author: string;
   medium: string | null;
@@ -593,14 +692,32 @@ function normalizeMediumName(name: string): string {
   if (n.includes("divaldo")) return "Divaldo Pereira Franco";
   if (n.includes("zilda")) return "Zilda Gama";
   if (n.includes("maria gertrudes")) return "Maria Gertrudes";
+  if (n.includes("dolores") && n.includes("bacel")) return "Dolores Bacellar";
+  if (n.includes("j raul") || n.includes("raul teixeira")) return "J. Raul Teixeira";
+  if (n.includes("heigorina")) return "Heigorina Cunha";
+  if (n.includes("zibia")) return "Zibia Gaspareto";
+  if (n.includes("vera krijanowski")) return "Vera Krijanowski";
+  if (n.includes("francisco do espirito santo")) return "Francisco do Espírito Santo Neto";
   return name.trim();
 }
 
 export function resolveAuthorRegistry(author: string, medium: string | null) {
-  const authorNorm = normalizeText(author);
+  const canonical = normalizeSpiritName(author);
+  const authorNorm = normalizeText(canonical);
 
   for (const entry of AUTHOR_REGISTRY) {
-    if (entry.patterns.some((p) => authorNorm.includes(normalizeText(p)))) {
+    if (entry.patterns.some((p) => authorNorm === normalizeText(p))) {
+      return entry;
+    }
+    const shortGroup = normalizeText(entry.group.replace(/\s*—\s*.+$/, ""));
+    if (authorNorm === shortGroup) return entry;
+  }
+
+  for (const entry of AUTHOR_REGISTRY) {
+    if (entry.patterns.some((p) => {
+      const pn = normalizeText(p);
+      return pn.length > 4 && authorNorm.includes(pn);
+    })) {
       return entry;
     }
   }
@@ -633,17 +750,21 @@ function inferCollection(authorCode: string, registry: (typeof AUTHOR_REGISTRY)[
   return registry.collection ?? null;
 }
 
-export function buildWorkKey(title: string, author: string): string {
-  return `${normalizeText(title)}|${normalizeText(author)}`;
+export function buildWorkKey(title: string, author: string, medium?: string | null): string {
+  const spirit = normalizeText(normalizeSpiritName(author));
+  const titleKey = normalizeTitleKey(title);
+  const mediumKey = medium ? normalizeText(normalizeMediumName(medium)) : "";
+  return `${spirit}|${titleKey}|${mediumKey}`;
 }
 
 export function groupFeabeRows(rows: FeabeSpreadsheetRow[]): FeabeWorkGroup[] {
   const grouped = new Map<string, FeabeWorkGroup>();
 
   for (const row of rows) {
-    const { author, medium } = parseFeabeAuthor(row.authorRaw);
+    const { author: parsedAuthor, medium } = parseFeabeAuthor(row.authorRaw);
+    const author = normalizeSpiritName(parsedAuthor);
     const registry = resolveAuthorRegistry(author, medium);
-    const key = buildWorkKey(row.title, author);
+    const key = buildWorkKey(row.title, author, medium);
 
     if (!grouped.has(key)) {
       const kardecMeta = registry.code === "KAR" ? inferKardecMetadata(row.title) : null;
@@ -683,28 +804,32 @@ export function groupFeabeRows(rows: FeabeSpreadsheetRow[]): FeabeWorkGroup[] {
   return [...grouped.values()].sort((a, b) => a.workNumber - b.workNumber);
 }
 
-function compareWorks(a: FeabeWorkGroup, b: FeabeWorkGroup): number {
-  const sectionOrder = Object.keys(FEABE_SECTIONS);
-  const sa = sectionOrder.indexOf(a.section);
-  const sb = sectionOrder.indexOf(b.section);
-  if (sa !== sb) return sa - sb;
+function authorGroupSortIndex(code: string): number {
+  const idx = AUTHOR_REGISTRY.findIndex((entry) => entry.code === code);
+  return idx >= 0 ? idx : 1000 + code.charCodeAt(0);
+}
 
-  const authorCmp = normalizeText(a.authorGroup).localeCompare(
-    normalizeText(b.authorGroup),
+function sortableLabel(value: string): string {
+  return normalizeText(value).replace(/^[^a-z0-9]+/, "");
+}
+
+function compareWorks(a: FeabeWorkGroup, b: FeabeWorkGroup): number {
+  const registryCmp = authorGroupSortIndex(a.authorCode) - authorGroupSortIndex(b.authorCode);
+  if (registryCmp !== 0) return registryCmp;
+
+  const groupCmp = sortableLabel(a.authorGroup).localeCompare(sortableLabel(b.authorGroup), "pt-BR");
+  if (groupCmp !== 0) return groupCmp;
+
+  const spiritCmp = sortableLabel(normalizeSpiritName(a.author)).localeCompare(
+    sortableLabel(normalizeSpiritName(b.author)),
     "pt-BR"
   );
-  if (authorCmp !== 0) return authorCmp;
-
-  const spiritCmp = normalizeText(a.author).localeCompare(normalizeText(b.author), "pt-BR");
   if (spiritCmp !== 0) return spiritCmp;
 
-  const mediumCmp = normalizeText(a.medium ?? "").localeCompare(
-    normalizeText(b.medium ?? ""),
-    "pt-BR"
-  );
-  if (mediumCmp !== 0) return mediumCmp;
+  const titleCmp = sortableLabel(a.title).localeCompare(sortableLabel(b.title), "pt-BR");
+  if (titleCmp !== 0) return titleCmp;
 
-  return normalizeText(a.title).localeCompare(normalizeText(b.title), "pt-BR");
+  return sortableLabel(a.medium ?? "").localeCompare(sortableLabel(b.medium ?? ""), "pt-BR");
 }
 
 function assignCatalogNumbers(grouped: Map<string, FeabeWorkGroup>) {

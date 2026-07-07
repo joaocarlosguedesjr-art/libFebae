@@ -6,6 +6,23 @@ export type BooksListResponse<T> = {
   hasMore: boolean;
 };
 
+/** Busca uma página do acervo */
+export async function fetchBooksPage<T>(
+  baseParams: URLSearchParams,
+  options: { page: number; pageSize: number },
+): Promise<BooksListResponse<T>> {
+  const params = new URLSearchParams(baseParams);
+  params.set("page", String(options.page));
+  params.set("limit", String(options.pageSize));
+
+  const res = await fetch(`/api/books?${params}`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(res.status === 429 ? "rate_limit" : "fetch_failed");
+  }
+
+  return (await res.json()) as BooksListResponse<T>;
+}
+
 /** Busca páginas do acervo até `maxPages` (protege o cliente de loops infinitos) */
 export async function fetchBooksPages<T>(
   baseParams: URLSearchParams,

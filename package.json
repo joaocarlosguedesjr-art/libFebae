@@ -24,6 +24,12 @@
     "institution:init": "node scripts/with-env.mjs tsx scripts/init-institution.ts",
     "catalog:analyze": "node scripts/analyze-feabe-xlsx.mjs",
     "catalog:enrich": "tsx scripts/enrich-feabe-catalog.ts",
+    "catalog:reorganize": "tsx scripts/reorganize-feabe-catalog.ts",
+    "catalog:sync:plan": "node scripts/with-env.mjs tsx scripts/sync-feabe-catalog-db.ts --plan",
+    "catalog:sync:verify": "node scripts/with-env.mjs tsx scripts/sync-feabe-catalog-db.ts --plan --skip-csv-write",
+    "catalog:sync": "node scripts/with-env.mjs tsx scripts/sync-feabe-catalog-db.ts",
+    "catalog:sync:dry": "node scripts/with-env.mjs tsx scripts/sync-feabe-catalog-db.ts --plan",
+    "dns:verify": "node scripts/verify-dns.mjs",
     "catalog:import": "node scripts/with-env.mjs tsx scripts/import-feabe-catalog.ts",
     "catalog:import:dry": "node scripts/with-env.mjs tsx scripts/import-feabe-catalog.ts --dry-run"
   },

@@ -5,7 +5,7 @@ export const metadata = {
   title: "Termos de Uso — Biblioteca",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function TermosPage() {
   const config = await getLegalConfig();

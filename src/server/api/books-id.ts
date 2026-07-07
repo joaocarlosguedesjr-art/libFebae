@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { bookInputToPrismaData } from "@/lib/books";
 import { prisma } from "@/lib/prisma";
 import { bookSchema } from "@/lib/validations";
+import { sanitizeCoverImageUrl } from "@/lib/safe-image-url";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
@@ -26,7 +27,10 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  return NextResponse.json(book);
+  return NextResponse.json({
+    ...book,
+    coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+  });
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -63,7 +67,10 @@ export async function PUT(request: Request, { params }: Params) {
     include: { copies: true, categories: true },
   });
 
-  return NextResponse.json(book);
+  return NextResponse.json({
+    ...book,
+    coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+  });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

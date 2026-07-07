@@ -6,7 +6,7 @@ export const metadata = {
   title: "Seus direitos — LGPD",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function LgpdPage() {
   const config = await getLegalConfig();

@@ -9,6 +9,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { bookSchema } from "@/lib/validations";
+import { sanitizeCoverImageUrl } from "@/lib/safe-image-url";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
 
   const items = books.map((book) => ({
     ...book,
+    coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
     availableCopies: book.copies.filter((c) => c.status === "AVAILABLE").length,
   }));
 
@@ -86,5 +88,11 @@ export async function POST(request: Request) {
     include: { copies: true, categories: true },
   });
 
-  return NextResponse.json(book, { status: 201 });
+  return NextResponse.json(
+    {
+      ...book,
+      coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+    },
+    { status: 201 },
+  );
 }

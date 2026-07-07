@@ -157,6 +157,7 @@ model Book {
   language        String?
   synopsis        String?
   notes           String?
+  coverImageUrl   String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   copies          Copy[]

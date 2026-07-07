@@ -9,11 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/ui/pagination";
+import { BookCover } from "@/components/books/book-cover";
 import { BookAssistant, openBookAssistant } from "@/components/chat/book-assistant";
 import { PublicFooter } from "@/components/legal/public-footer";
 
+import { BOOK_PAGE_CATALOG } from "@/lib/books";
 import { formatBookCredit } from "@/lib/spiritist";
-import { fetchBooksPages } from "@/lib/client-books";
+import { fetchBooksPage } from "@/lib/client-books";
 
 type Book = {
   id: string;
@@ -23,6 +26,7 @@ type Book = {
   medium: string | null;
   year: number | null;
   collection: string | null;
+  coverImageUrl: string | null;
   availableCopies: number;
 };
 
@@ -31,23 +35,30 @@ function CatalogList({ books }: { books: Book[] }) {
     <div className="space-y-3 md:hidden">
       {books.map((book) => (
         <Card key={book.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="font-semibold text-slate-900">{book.title}</h2>
-                <p className="text-sm text-slate-600">
-                  {formatBookCredit(book.author, book.medium)}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                  {book.collection && <span>{book.collection}</span>}
-                  {book.year && <span>Ano: {book.year}</span>}
+          <CardContent className="flex gap-4 p-4">
+            <BookCover
+              title={book.title}
+              coverImageUrl={book.coverImageUrl}
+              className="h-28 w-20 shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-slate-900">{book.title}</h2>
+                  <p className="text-sm text-slate-600">
+                    {formatBookCredit(book.author, book.medium)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                    {book.collection && <span>{book.collection}</span>}
+                    {book.year && <span>Ano: {book.year}</span>}
+                  </div>
                 </div>
+                <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
+                  {book.availableCopies > 0
+                    ? `${book.availableCopies} disponível(is)`
+                    : "Indisponível"}
+                </Badge>
               </div>
-              <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
-                {book.availableCopies > 0
-                  ? `${book.availableCopies} disponível(is)`
-                  : "Indisponível"}
-              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -60,7 +71,12 @@ function CatalogGrid({ books }: { books: Book[] }) {
   return (
     <div className="hidden grid-cols-2 gap-4 md:grid lg:grid-cols-3">
       {books.map((book) => (
-        <Card key={book.id} className="h-full">
+        <Card key={book.id} className="h-full overflow-hidden">
+          <BookCover
+            title={book.title}
+            coverImageUrl={book.coverImageUrl}
+            className="aspect-[2/3] w-full rounded-none"
+          />
           <CardContent className="flex h-full flex-col p-5">
             <h2 className="line-clamp-2 font-semibold text-slate-900">{book.title}</h2>
             <p className="mt-1 text-sm text-slate-600">
@@ -87,8 +103,12 @@ function CatalogGrid({ books }: { books: Book[] }) {
 export default function CatalogoPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+
+  const pageSize = BOOK_PAGE_CATALOG;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -98,12 +118,17 @@ export default function CatalogoPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchBooks() {
+    setPage(1);
+  }, [query]);
+
+  useEffect(() => {
+    async function loadPage() {
       setLoading(true);
       const params = new URLSearchParams({ public: "true" });
       if (query) params.set("q", query);
+
       try {
-        const result = await fetchBooksPages<Book>(params, { pageSize: 100, maxPages: 12 });
+        const result = await fetchBooksPage<Book>(params, { page, pageSize });
         setBooks(result.items);
         setTotal(result.total);
       } catch {
@@ -113,9 +138,13 @@ export default function CatalogoPage() {
       setLoading(false);
     }
 
-    const timeout = setTimeout(fetchBooks, 300);
+    const timeout = setTimeout(loadPage, 300);
     return () => clearTimeout(timeout);
-  }, [query]);
+  }, [query, page, pageSize]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-24">
@@ -155,24 +184,25 @@ export default function CatalogoPage() {
 
         <SearchBar onSearch={setQuery} defaultValue={query} />
 
-        {!loading && total > books.length && (
-          <p className="mb-2 text-xs text-slate-500">
-            Exibindo {books.length} de {total} título(s). Refine a busca para ver mais.
-          </p>
-        )}
-
         {loading ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full md:h-40" />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: pageSize }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[2/3] w-full" />
             ))}
           </div>
         ) : books.length === 0 ? (
           <p className="py-12 text-center text-slate-500">Nenhum livro encontrado.</p>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 space-y-6">
             <CatalogList books={books} />
             <CatalogGrid books={books} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </main>

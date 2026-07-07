@@ -20,6 +20,7 @@ export function bookInputToPrismaData(parsed: BookInput) {
     language: rest.language ?? null,
     synopsis: rest.synopsis ?? null,
     notes: rest.notes ?? null,
+    coverImageUrl: rest.coverImageUrl ?? null,
     categories: categories?.length
       ? {
           connectOrCreate: categories.map((name) => ({
@@ -70,6 +71,7 @@ export function buildBookSearchWhere(q: string) {
 }
 
 export const BOOK_PAGE_DEFAULT = 50;
+export const BOOK_PAGE_CATALOG = 21;
 export const BOOK_PAGE_MAX_PUBLIC = 100;
 export const BOOK_PAGE_MAX_AUTH = 200;
 
