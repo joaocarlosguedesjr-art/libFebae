@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ClipboardList, Plus, RotateCcw } from "lucide-react";
+import { BellRing, ClipboardList, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,13 +41,14 @@ type LoanRequest = {
   book: { title: string; author: string; medium: string | null };
 };
 
-type Filter = "" | "ACTIVE" | "OVERDUE" | "RETURNED";
+type Filter = "" | "ACTIVE" | "OVERDUE" | "RETURN_REQUESTED" | "RETURNED";
 type AdminView = "circulacao" | "historico";
 
 const filters: { value: Filter; label: string }[] = [
   { value: "", label: "Todos" },
   { value: "ACTIVE", label: "Ativos" },
   { value: "OVERDUE", label: "Atrasados" },
+  { value: "RETURN_REQUESTED", label: "Aguardando devolução" },
   { value: "RETURNED", label: "Devolvidos" },
 ];
 
@@ -56,15 +57,103 @@ const adminViews: { value: AdminView; label: string }[] = [
   { value: "historico", label: "Histórico" },
 ];
 
+function getDaysUntilDue(dueDate: string) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  return Math.ceil((due.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function canRenew(loan: Loan) {
+  return loan.status === "ACTIVE" && getDaysUntilDue(loan.dueDate) <= 2;
+}
+
+function isOpenLoan(loan: Loan) {
+  return (
+    loan.status === "ACTIVE" ||
+    loan.status === "OVERDUE" ||
+    loan.status === "RETURN_REQUESTED"
+  );
+}
+
+function LoanActions({
+  loan,
+  isAdmin,
+  onRequestReturn,
+  onConfirmReturn,
+  onRenew,
+}: {
+  loan: Loan;
+  isAdmin: boolean;
+  onRequestReturn: (id: string) => void;
+  onConfirmReturn: (id: string) => void;
+  onRenew: (id: string) => void;
+}) {
+  if (!isOpenLoan(loan)) return null;
+
+  if (isAdmin) {
+    return (
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => onConfirmReturn(loan.id)}>
+          <RotateCcw className="h-4 w-4" />
+          Confirmar devolução
+        </Button>
+        {loan.status !== "RETURN_REQUESTED" && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!canRenew(loan)}
+            onClick={() => onRenew(loan.id)}
+            title={!canRenew(loan) ? "Disponível faltando 2 dias para o vencimento" : undefined}
+          >
+            Renovar
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (loan.status === "RETURN_REQUESTED") {
+    return (
+      <p className="max-w-[12rem] text-right text-xs text-amber-700">
+        Aguardando confirmação do bibliotecário na entrega
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <Button size="sm" variant="outline" onClick={() => onRequestReturn(loan.id)}>
+        <RotateCcw className="h-4 w-4" />
+        Solicitar devolução
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!canRenew(loan)}
+        onClick={() => onRenew(loan.id)}
+        title={!canRenew(loan) ? "Disponível faltando 2 dias para o vencimento" : undefined}
+      >
+        Renovar
+      </Button>
+    </div>
+  );
+}
+
 function LoanCards({
   loans,
   isAdmin,
-  onReturn,
+  onRequestReturn,
+  onConfirmReturn,
+  onRenew,
   highlightReader,
 }: {
   loans: Loan[];
   isAdmin: boolean;
-  onReturn: (id: string) => void;
+  onRequestReturn: (id: string) => void;
+  onConfirmReturn: (id: string) => void;
+  onRenew: (id: string) => void;
   highlightReader?: boolean;
 }) {
   return (
@@ -102,11 +191,13 @@ function LoanCards({
               </div>
               <div className="flex flex-col items-end gap-2">
                 <LoanStatusBadge status={loan.status} />
-                {isAdmin && (loan.status === "ACTIVE" || loan.status === "OVERDUE") && (
-                  <Button size="sm" variant="outline" onClick={() => onReturn(loan.id)}>
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                )}
+                <LoanActions
+                  loan={loan}
+                  isAdmin={isAdmin}
+                  onRequestReturn={onRequestReturn}
+                  onConfirmReturn={onConfirmReturn}
+                  onRenew={onRenew}
+                />
               </div>
             </div>
           </CardContent>
@@ -119,12 +210,16 @@ function LoanCards({
 function LoanTable({
   loans,
   isAdmin,
-  onReturn,
+  onRequestReturn,
+  onConfirmReturn,
+  onRenew,
   highlightReader,
 }: {
   loans: Loan[];
   isAdmin: boolean;
-  onReturn: (id: string) => void;
+  onRequestReturn: (id: string) => void;
+  onConfirmReturn: (id: string) => void;
+  onRenew: (id: string) => void;
   highlightReader?: boolean;
 }) {
   return (
@@ -137,7 +232,7 @@ function LoanTable({
           <TableHeader>Retirada</TableHeader>
           <TableHeader>Prazo</TableHeader>
           <TableHeader>Status</TableHeader>
-          {isAdmin && <TableHeader className="text-right">Ações</TableHeader>}
+          <TableHeader className="text-right">Ações</TableHeader>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -159,16 +254,15 @@ function LoanTable({
             <TableCell>
               <LoanStatusBadge status={loan.status} />
             </TableCell>
-            {isAdmin && (
-              <TableCell className="text-right">
-                {(loan.status === "ACTIVE" || loan.status === "OVERDUE") && (
-                  <Button size="sm" variant="outline" onClick={() => onReturn(loan.id)}>
-                    <RotateCcw className="h-4 w-4" />
-                    Devolver
-                  </Button>
-                )}
-              </TableCell>
-            )}
+            <TableCell className="text-right">
+              <LoanActions
+                loan={loan}
+                isAdmin={isAdmin}
+                onRequestReturn={onRequestReturn}
+                onConfirmReturn={onConfirmReturn}
+                onRenew={onRenew}
+              />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -214,15 +308,48 @@ export default function EmprestimosPage() {
     if (session?.user) loadRequests();
   }, [session?.user, isAdmin]);
 
-  async function handleReturn(loanId: string) {
+  async function handleRequestReturn(loanId: string) {
+    const res = await fetch(`/api/loans/${loanId}/request-return`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.error ?? "Erro ao solicitar devolução");
+      return;
+    }
+    toast.success("Devolução solicitada. Entregue o livro na biblioteca.");
+    loadLoans();
+  }
+
+  async function handleConfirmReturn(loanId: string) {
     const res = await fetch(`/api/loans/${loanId}/return`, { method: "POST" });
     if (!res.ok) {
       const err = await res.json();
-      toast.error(err.error ?? "Erro ao registrar devolução");
+      toast.error(err.error ?? "Erro ao confirmar devolução");
       return;
     }
-    toast.success("Devolução registrada!");
+    toast.success("Devolução confirmada!");
     loadLoans();
+  }
+
+  async function handleRenew(loanId: string) {
+    const res = await fetch(`/api/loans/${loanId}/renew`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.error ?? "Erro ao renovar empréstimo");
+      return;
+    }
+    toast.success("Empréstimo renovado!");
+    loadLoans();
+  }
+
+  async function handleSendReminders() {
+    const res = await fetch("/api/loans/reminders/send", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.error ?? "Erro ao enviar lembretes");
+      return;
+    }
+    const data = (await res.json()) as { message?: string };
+    toast.success(data.message ?? "Lembretes enviados.");
   }
 
   async function cancelRequest(id: string) {
@@ -237,6 +364,7 @@ export default function EmprestimosPage() {
   }
 
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
+  const pendingReturns = loans.filter((l) => l.status === "RETURN_REQUESTED").length;
 
   return (
     <div className="space-y-4">
@@ -244,7 +372,7 @@ export default function EmprestimosPage() {
         title={isAdmin ? "Empréstimos" : "Meus empréstimos"}
         description={
           isAdmin && adminView === "circulacao"
-            ? `${loans.length} livro(s) em circulação`
+            ? `${loans.length} livro(s) em circulação${pendingReturns ? ` · ${pendingReturns} aguardando devolução` : ""}`
             : `${loans.length} registro(s)`
         }
         action={
@@ -264,9 +392,13 @@ export default function EmprestimosPage() {
               <Link href="/emprestimos/novo">
                 <Button size="sm" className="w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  Registrar retirada
+                  Emprestar
                 </Button>
               </Link>
+              <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={handleSendReminders}>
+                <BellRing className="h-4 w-4" />
+                Enviar lembretes
+              </Button>
             </div>
           ) : (
             <Link href="/emprestimos/solicitar">
@@ -338,13 +470,17 @@ export default function EmprestimosPage() {
           <LoanCards
             loans={loans}
             isAdmin={!!isAdmin}
-            onReturn={handleReturn}
+            onRequestReturn={handleRequestReturn}
+            onConfirmReturn={handleConfirmReturn}
+            onRenew={handleRenew}
             highlightReader={isAdmin && adminView === "circulacao"}
           />
           <LoanTable
             loans={loans}
             isAdmin={!!isAdmin}
-            onReturn={handleReturn}
+            onRequestReturn={handleRequestReturn}
+            onConfirmReturn={handleConfirmReturn}
+            onRenew={handleRenew}
             highlightReader={isAdmin && adminView === "circulacao"}
           />
         </>

@@ -49,7 +49,7 @@ export async function createLoanRequest(userId: string, bookId: string, readerNo
   const activeLoan = await prisma.loan.findFirst({
     where: {
       userId,
-      status: { in: ["ACTIVE", "OVERDUE"] },
+      status: { in: ["ACTIVE", "OVERDUE", "RETURN_REQUESTED"] },
       copy: { bookId },
     },
   });

@@ -1,0 +1,2 @@
+-- CreateEnum
+ALTER TYPE "LoanStatus" ADD VALUE 'RETURN_REQUESTED';

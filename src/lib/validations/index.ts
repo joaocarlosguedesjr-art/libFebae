@@ -67,6 +67,19 @@ export const signupResendSchema = z.object({
   verificationId: z.string().min(1),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email("E-mail inválido"),
+});
+
+export const passwordResetCompleteSchema = z.object({
+  verificationId: z.string().min(1),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string().min(6, "Confirme a nova senha"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
 export const selfSignupRequestSchema = signupRequestSchema.omit({ role: true }).extend({
   role: z.literal("READER").optional().default("READER"),
 });
@@ -182,6 +195,8 @@ export const appConfigSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetCompleteInput = z.infer<typeof passwordResetCompleteSchema>;
 export type UserInput = z.infer<typeof signupRequestSchema>;
 export type SignupVerifyInput = z.infer<typeof signupVerifySchema>;
 export type BookInput = z.infer<typeof bookSchema>;

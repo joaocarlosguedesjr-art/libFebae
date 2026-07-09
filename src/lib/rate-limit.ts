@@ -92,4 +92,9 @@ export const RATE_LIMITS = {
   signupConfirm: { prefix: "signup-confirm", limit: 25, windowMs: 60_000 },
   branding: { prefix: "branding", limit: 120, windowMs: 60_000 },
   adminEmailSend: { prefix: "admin-email-send", limit: 20, windowMs: 60 * 60_000 },
+  passwordResetSend: { prefix: "password-reset-send", limit: 5, windowMs: 60 * 60_000 },
+  passwordResetSendIp: { prefix: "password-reset-send-ip", limit: 8, windowMs: 60 * 60_000 },
+  passwordResetResend: { prefix: "password-reset-resend", limit: 10, windowMs: 60 * 60_000 },
+  passwordResetVerify: { prefix: "password-reset-verify", limit: 25, windowMs: 60_000 },
+  passwordResetComplete: { prefix: "password-reset-complete", limit: 10, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, RateLimitConfig>;

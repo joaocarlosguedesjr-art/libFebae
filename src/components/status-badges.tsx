@@ -17,12 +17,14 @@ const copyVariants: Record<CopyStatus, "success" | "warning" | "danger" | "secon
 
 const loanLabels: Record<LoanStatus, string> = {
   ACTIVE: "Ativo",
+  RETURN_REQUESTED: "Aguardando devolução",
   RETURNED: "Devolvido",
   OVERDUE: "Atrasado",
 };
 
 const loanVariants: Record<LoanStatus, "success" | "warning" | "danger" | "secondary" | "default"> = {
   ACTIVE: "secondary",
+  RETURN_REQUESTED: "warning",
   RETURNED: "success",
   OVERDUE: "danger",
 };

@@ -2,12 +2,15 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import nodemailer from "nodemailer";
 import {
+  buildLoanReminderEmailContent,
+  buildPasswordResetEmailContent,
   buildVerificationEmailContent,
   getAppBaseUrl,
   getPublicBranding,
   LOGO_CID,
 } from "@/lib/branding";
 import { resolveLogoUrl, INSTITUTION_DEFAULTS } from "@/lib/institution";
+import { formatDate } from "@/lib/utils";
 
 function getLogoFilePath(logoUrl?: string | null): string {
   const publicPath = resolveLogoUrl(logoUrl).replace(/^\//, "");
@@ -94,6 +97,113 @@ export async function sendVerificationCodeEmail(to: string, code: string, name: 
   await transporter.sendMail({
     from: `"${institution}" <${from}>`,
     to,
+    subject,
+    text,
+    html,
+    attachments,
+  });
+}
+
+export async function sendPasswordResetCodeEmail(to: string, code: string, name: string) {
+  const branding = await getPublicBranding();
+  const institution =
+    process.env.SMTP_FROM_NAME ?? branding.institutionName ?? INSTITUTION_DEFAULTS.institutionName;
+  const from =
+    process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "noreply@biblioteca.local";
+  const loginUrl = `${getAppBaseUrl()}/login`;
+
+  const subject = `${code} — Redefinição de senha | ${institution}`;
+  const { text, html } = buildPasswordResetEmailContent({
+    name,
+    code,
+    institutionName: institution,
+    loginUrl,
+  });
+
+  const transporter = getTransporter();
+
+  if (!transporter) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("\n========== E-MAIL RESET (DEV) ==========");
+      console.log(`Para: ${to}`);
+      console.log(`Código: ${code}`);
+      console.log("=======================================\n");
+      return;
+    }
+    throw new Error(
+      "Serviço de e-mail não configurado. Defina SMTP_HOST, SMTP_USER e SMTP_PASS.",
+    );
+  }
+
+  await transporter.verify();
+
+  const logoPath = getLogoFilePath(branding.institutionLogoUrl);
+  const attachments = existsSync(logoPath)
+    ? [{ filename: "feabe-logo.jpeg", path: logoPath, cid: LOGO_CID }]
+    : [];
+
+  await transporter.sendMail({
+    from: `"${institution}" <${from}>`,
+    to,
+    subject,
+    text,
+    html,
+    attachments,
+  });
+}
+
+export async function sendLoanReminderEmail(options: {
+  to: string;
+  name: string;
+  title: string;
+  dueDate: Date;
+  renewUrl: string;
+  returnUrl: string;
+  loansUrl: string;
+}) {
+  const branding = await getPublicBranding();
+  const institution =
+    process.env.SMTP_FROM_NAME ?? branding.institutionName ?? INSTITUTION_DEFAULTS.institutionName;
+  const from =
+    process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "noreply@biblioteca.local";
+
+  const subject = `Lembrete de empréstimo — ${options.title} | ${institution}`;
+  const { text, html } = buildLoanReminderEmailContent({
+    name: options.name,
+    title: options.title,
+    dueDateLabel: formatDate(options.dueDate),
+    institutionName: institution,
+    renewUrl: options.renewUrl,
+    returnUrl: options.returnUrl,
+    loansUrl: options.loansUrl,
+  });
+
+  const transporter = getTransporter();
+  if (!transporter) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("\n========== LEMBRETE EMPRÉSTIMO (DEV) ==========");
+      console.log(`Para: ${options.to}`);
+      console.log(`Livro: ${options.title}`);
+      console.log(`Renovar: ${options.renewUrl}`);
+      console.log(`Solicitar devolução: ${options.returnUrl}`);
+      console.log("===============================================\n");
+      return;
+    }
+    throw new Error(
+      "Serviço de e-mail não configurado. Defina SMTP_HOST, SMTP_USER e SMTP_PASS.",
+    );
+  }
+
+  await transporter.verify();
+
+  const logoPath = getLogoFilePath(branding.institutionLogoUrl);
+  const attachments = existsSync(logoPath)
+    ? [{ filename: "feabe-logo.jpeg", path: logoPath, cid: LOGO_CID }]
+    : [];
+
+  await transporter.sendMail({
+    from: `"${institution}" <${from}>`,
+    to: options.to,
     subject,
     text,
     html,

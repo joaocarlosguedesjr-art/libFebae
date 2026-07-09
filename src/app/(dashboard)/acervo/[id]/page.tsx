@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export default function LivroDetalhePage() {
   const [newCode, setNewCode] = useState("");
   const [adding, setAdding] = useState(false);
   const isAdmin = session?.user?.role === "ADMIN";
+  const availableCopies = book?.copies.filter((c) => c.status === "AVAILABLE").length ?? 0;
 
   async function loadBook() {
     const res = await fetch(`/api/books/${id}`);
@@ -132,9 +134,19 @@ export default function LivroDetalhePage() {
           )}
         </div>
         {isAdmin && (
-          <Button variant="destructive" size="sm" onClick={deleteBook}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 flex-col gap-2">
+            {availableCopies > 0 && (
+              <Link href={`/emprestimos/novo?bookId=${book.id}`}>
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  Emprestar
+                </Button>
+              </Link>
+            )}
+            <Button variant="destructive" size="sm" onClick={deleteBook}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 

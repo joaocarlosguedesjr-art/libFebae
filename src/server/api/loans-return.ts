@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
-import { returnLoan } from "@/lib/loans";
+import { confirmReturnLoan } from "@/lib/loans";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
 
+/** Confirma devolução física — somente admin. */
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -13,12 +14,12 @@ export async function POST(_request: Request, { params }: Params) {
   const { id } = await params;
 
   try {
-    const loan = await returnLoan(id);
+    const loan = await confirmReturnLoan(id);
     return NextResponse.json(loan);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao devolver" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

@@ -4,6 +4,10 @@ import * as booksId from "@/server/api/books-id";
 import * as copies from "@/server/api/copies";
 import * as loansList from "@/server/api/loans-list";
 import * as loansReturn from "@/server/api/loans-return";
+import * as loansRequestReturn from "@/server/api/loans-request-return";
+import * as loansRenew from "@/server/api/loans-renew";
+import * as loansAction from "@/server/api/loans-action";
+import * as loansRemindersSend from "@/server/api/loans-reminders-send";
 import * as loanRequestsList from "@/server/api/loan-requests-list";
 import * as loanRequestsId from "@/server/api/loan-requests-id";
 import * as stats from "@/server/api/stats";
@@ -21,6 +25,10 @@ import * as cadastroConfirm from "@/server/api/cadastro-confirm";
 import * as lgpdRequestsList from "@/server/api/lgpd-requests-list";
 import * as lgpdRequestsId from "@/server/api/lgpd-requests-id";
 import * as privacyAccept from "@/server/api/privacy-accept";
+import * as passwordResetSend from "@/server/api/password-reset-send";
+import * as passwordResetResend from "@/server/api/password-reset-resend";
+import * as passwordResetVerify from "@/server/api/password-reset-verify";
+import * as passwordResetComplete from "@/server/api/password-reset-complete";
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
@@ -79,6 +87,26 @@ export async function dispatchApi(
 
   if (root === "loans" && second && third === "return" && path.length === 3) {
     if (method === "POST") return loansReturn.POST(request, asParams(ctx(second)));
+    return methodNotAllowed();
+  }
+
+  if (root === "loans" && second && third === "request-return" && path.length === 3) {
+    if (method === "POST") return loansRequestReturn.POST(request, asParams(ctx(second)));
+    return methodNotAllowed();
+  }
+
+  if (root === "loans" && second && third === "renew" && path.length === 3) {
+    if (method === "POST") return loansRenew.POST(request, asParams(ctx(second)));
+    return methodNotAllowed();
+  }
+
+  if (root === "loans" && second === "action" && path.length === 2) {
+    if (method === "GET") return loansAction.GET(request);
+    return methodNotAllowed();
+  }
+
+  if (root === "loans" && second === "reminders" && third === "send" && path.length === 3) {
+    if (method === "POST") return loansRemindersSend.POST();
     return methodNotAllowed();
   }
 
@@ -170,6 +198,26 @@ export async function dispatchApi(
 
   if (root === "privacy" && second === "accept" && path.length === 2) {
     if (method === "POST") return privacyAccept.POST();
+    return methodNotAllowed();
+  }
+
+  if (root === "password-reset" && second === "send" && path.length === 2) {
+    if (method === "POST") return passwordResetSend.POST(request);
+    return methodNotAllowed();
+  }
+
+  if (root === "password-reset" && second === "resend" && path.length === 2) {
+    if (method === "POST") return passwordResetResend.POST(request);
+    return methodNotAllowed();
+  }
+
+  if (root === "password-reset" && second === "verify" && path.length === 2) {
+    if (method === "POST") return passwordResetVerify.POST(request);
+    return methodNotAllowed();
+  }
+
+  if (root === "password-reset" && second === "complete" && path.length === 2) {
+    if (method === "POST") return passwordResetComplete.POST(request);
     return methodNotAllowed();
   }
 

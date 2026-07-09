@@ -22,6 +22,7 @@ enum CopyStatus {
 
 enum LoanStatus {
   ACTIVE
+  RETURN_REQUESTED
   RETURNED
   OVERDUE
 }
@@ -56,6 +57,7 @@ enum DataSubjectRequestStatus {
 
 enum EmailVerificationPurpose {
   USER_SIGNUP
+  PASSWORD_RESET
 }
 
 /// Tipo de obra no contexto espírita

@@ -132,7 +132,7 @@ export default function DashboardPage() {
           { href: "/acervo/novo", label: "Novo livro" },
           { href: "/emprestimos/solicitacoes", label: "Solicitações de empréstimo" },
           { href: "/emprestimos", label: "Livros em circulação" },
-          { href: "/emprestimos/novo", label: "Registrar retirada" },
+          { href: "/emprestimos/novo", label: "Emprestar livro" },
           { href: "/usuarios/novo", label: "Novo leitor" },
           { href: "/configuracoes", label: "Configurações" },
           { href: "/catalogo", label: "Catálogo público" },

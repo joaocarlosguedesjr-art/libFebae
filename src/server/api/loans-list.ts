@@ -22,9 +22,9 @@ export async function GET(request: Request) {
       : session.user.id;
 
   const statusFilter = circulating
-    ? { status: { in: ["ACTIVE" as const, "OVERDUE" as const] } }
+    ? { status: { in: ["ACTIVE" as const, "OVERDUE" as const, "RETURN_REQUESTED" as const] } }
     : status
-      ? { status: status as "ACTIVE" | "RETURNED" | "OVERDUE" }
+      ? { status: status as "ACTIVE" | "RETURNED" | "OVERDUE" | "RETURN_REQUESTED" }
       : {};
 
   const loans = await prisma.loan.findMany({

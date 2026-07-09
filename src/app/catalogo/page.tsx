@@ -34,34 +34,37 @@ function CatalogList({ books }: { books: Book[] }) {
   return (
     <div className="space-y-3 md:hidden">
       {books.map((book) => (
-        <Card key={book.id}>
-          <CardContent className="flex gap-4 p-4">
-            <BookCover
-              title={book.title}
-              coverImageUrl={book.coverImageUrl}
-              className="h-28 w-20 shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold text-slate-900">{book.title}</h2>
-                  <p className="text-sm text-slate-600">
-                    {formatBookCredit(book.author, book.medium)}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                    {book.collection && <span>{book.collection}</span>}
-                    {book.year && <span>Ano: {book.year}</span>}
+        <Link key={book.id} href={`/catalogo/${book.id}`} className="block">
+          <Card className="transition hover:border-brand-300 hover:shadow-md">
+            <CardContent className="flex gap-4 p-4">
+              <BookCover
+                title={book.title}
+                coverImageUrl={book.coverImageUrl}
+                className="h-28 w-20 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold text-slate-900">{book.title}</h2>
+                    <p className="text-sm text-slate-600">
+                      {formatBookCredit(book.author, book.medium)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                      {book.collection && <span>{book.collection}</span>}
+                      {book.year && <span>Ano: {book.year}</span>}
+                    </div>
+                    <p className="mt-2 text-xs font-medium text-brand-700">Ler sinopse</p>
                   </div>
+                  <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
+                    {book.availableCopies > 0
+                      ? `${book.availableCopies} disponível(is)`
+                      : "Indisponível"}
+                  </Badge>
                 </div>
-                <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
-                  {book.availableCopies > 0
-                    ? `${book.availableCopies} disponível(is)`
-                    : "Indisponível"}
-                </Badge>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );
@@ -71,30 +74,33 @@ function CatalogGrid({ books }: { books: Book[] }) {
   return (
     <div className="hidden grid-cols-2 gap-4 md:grid lg:grid-cols-3">
       {books.map((book) => (
-        <Card key={book.id} className="h-full overflow-hidden">
-          <BookCover
-            title={book.title}
-            coverImageUrl={book.coverImageUrl}
-            className="aspect-[2/3] w-full rounded-none"
-          />
-          <CardContent className="flex h-full flex-col p-5">
-            <h2 className="line-clamp-2 font-semibold text-slate-900">{book.title}</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              {formatBookCredit(book.author, book.medium)}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-              {book.collection && <span>{book.collection}</span>}
-              {book.year && <span>Ano: {book.year}</span>}
-            </div>
-            <div className="mt-auto pt-4">
-              <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
-                {book.availableCopies > 0
-                  ? `${book.availableCopies} disponível(is)`
-                  : "Indisponível"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+        <Link key={book.id} href={`/catalogo/${book.id}`} className="block h-full">
+          <Card className="h-full overflow-hidden transition hover:border-brand-300 hover:shadow-md">
+            <BookCover
+              title={book.title}
+              coverImageUrl={book.coverImageUrl}
+              className="aspect-[2/3] w-full rounded-none"
+            />
+            <CardContent className="flex h-full flex-col p-5">
+              <h2 className="line-clamp-2 font-semibold text-slate-900">{book.title}</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {formatBookCredit(book.author, book.medium)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                {book.collection && <span>{book.collection}</span>}
+                {book.year && <span>Ano: {book.year}</span>}
+              </div>
+              <p className="mt-3 text-xs font-medium text-brand-700">Abrir sinopse</p>
+              <div className="mt-auto pt-4">
+                <Badge variant={book.availableCopies > 0 ? "success" : "warning"}>
+                  {book.availableCopies > 0
+                    ? `${book.availableCopies} disponível(is)`
+                    : "Indisponível"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );

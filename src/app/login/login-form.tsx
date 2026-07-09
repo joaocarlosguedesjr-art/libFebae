@@ -23,6 +23,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const cadastroOk = searchParams.get("cadastro") === "ok";
+  const senhaRedefinida = searchParams.get("senha") === "redefinida";
+  const acao = searchParams.get("acao");
 
   const {
     register,
@@ -78,6 +80,26 @@ export default function LoginPage() {
                 Conta criada com sucesso! Faça login com seu e-mail e senha.
               </p>
             )}
+            {senhaRedefinida && (
+              <p className="mb-4 rounded-lg bg-brand-50 p-3 text-sm text-brand-800">
+                Senha redefinida com sucesso! Faça login com sua nova senha.
+              </p>
+            )}
+            {acao === "renovado" && (
+              <p className="mb-4 rounded-lg bg-brand-50 p-3 text-sm text-brand-800">
+                Ação de renovação registrada com sucesso. Faça login para conferir seus empréstimos.
+              </p>
+            )}
+            {acao === "devolucao-solicitada" && (
+              <p className="mb-4 rounded-lg bg-brand-50 p-3 text-sm text-brand-800">
+                Devolução solicitada. Entregue o livro na biblioteca para o administrador confirmar.
+              </p>
+            )}
+            {(acao === "token-invalido" || acao === "token-expirado" || acao === "loan-invalido") && (
+              <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                O link do e-mail expirou ou é inválido. Entre no sistema para executar a ação.
+              </p>
+            )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
@@ -93,7 +115,15 @@ export default function LoginPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <Link
+                    href="/login/esqueci-senha"
+                    className="text-xs text-brand-700 hover:underline"
+                  >
+                    Esqueci a senha
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"

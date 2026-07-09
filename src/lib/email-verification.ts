@@ -57,6 +57,7 @@ export async function requestEmailVerification(
   const recent = await prisma.emailVerification.findFirst({
     where: {
       email: normalizedEmail,
+      purpose: "USER_SIGNUP",
       verifiedAt: null,
       expiresAt: { gt: new Date() },
     },
@@ -73,6 +74,7 @@ export async function requestEmailVerification(
   await prisma.emailVerification.deleteMany({
     where: {
       email: normalizedEmail,
+      purpose: "USER_SIGNUP",
       verifiedAt: null,
     },
   });
@@ -93,6 +95,7 @@ export async function requestEmailVerification(
     data: {
       email: normalizedEmail,
       codeHash: hashOtp(code, normalizedEmail),
+      purpose: "USER_SIGNUP",
       payload: encryptPayload(JSON.stringify(signupPayload)),
       expiresAt: new Date(Date.now() + CODE_TTL_MS),
       createdById: createdById ?? null,

@@ -7,9 +7,11 @@ import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
+  const { searchParams } = new URL(request.url);
   const { id } = await params;
-  const session = await auth();
+  const publicOnly = searchParams.get("public") === "true";
+  const session = publicOnly ? null : await auth();
 
   const book = await prisma.book.findUnique({
     where: { id },
@@ -23,14 +25,26 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Livro não encontrado" }, { status: 404 });
   }
 
-  if (!session?.user) {
+  if (!publicOnly && !session?.user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  return NextResponse.json({
-    ...book,
-    coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
-  });
+  if (publicOnly) {
+    return NextResponse.json({
+      id: book.id,
+      title: book.title,
+      subtitle: book.subtitle,
+      author: book.author,
+      medium: book.medium,
+      synopsis: book.synopsis,
+      year: book.year,
+      collection: book.collection,
+      coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl),
+      availableCopies: book.copies.filter((copy) => copy.status === "AVAILABLE").length,
+    });
+  }
+
+  return NextResponse.json({ ...book, coverImageUrl: sanitizeCoverImageUrl(book.coverImageUrl) });
 }
 
 export async function PUT(request: Request, { params }: Params) {
