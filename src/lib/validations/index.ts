@@ -152,7 +152,19 @@ export const copySchema = z.object({
 export const loanSchema = z.object({
   copyId: z.string().min(1, "Selecione um exemplar"),
   userId: z.string().min(1, "Selecione um leitor"),
-  dueDate: z.string().optional(),
+  dueDate: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true;
+        const chosen = new Date(`${value}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return chosen >= today;
+      },
+      { message: "A data de devolução não pode ser anterior a hoje" },
+    ),
 });
 
 export const loanRequestCreateSchema = z.object({
@@ -164,7 +176,19 @@ export const loanRequestReviewSchema = z.object({
   action: z.enum(["approve", "reject"]),
   copyId: z.string().optional(),
   adminNote: z.string().max(500, "Máximo 500 caracteres").optional(),
-  dueDate: z.string().optional(),
+  dueDate: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true;
+        const chosen = new Date(`${value}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return chosen >= today;
+      },
+      { message: "A data de devolução não pode ser anterior a hoje" },
+    ),
 });
 
 export const appConfigSchema = z.object({

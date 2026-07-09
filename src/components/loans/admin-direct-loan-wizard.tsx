@@ -8,7 +8,7 @@ import { SearchBar } from "@/components/search-bar";
 import { BookCover } from "@/components/books/book-cover";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DateInput, isDueDateNotBeforeToday } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,6 +72,7 @@ export function AdminDirectLoanWizard() {
   const [copiesLoading, setCopiesLoading] = useState(false);
   const [copyId, setCopyId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueDateError, setDueDateError] = useState("");
 
   const pageSize = BOOK_PAGE_CATALOG;
   const totalBookPages = Math.max(1, Math.ceil(booksTotal / pageSize));
@@ -187,6 +188,12 @@ export function AdminDirectLoanWizard() {
     e.preventDefault();
     if (!userId || !copyId) {
       toast.error("Selecione leitor e exemplar");
+      return;
+    }
+
+    if (dueDate && !isDueDateNotBeforeToday(dueDate)) {
+      setDueDateError("A data de devolução não pode ser anterior a hoje");
+      toast.error("A data de devolução não pode ser anterior a hoje");
       return;
     }
 
@@ -414,19 +421,27 @@ export function AdminDirectLoanWizard() {
 
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Data de devolução (opcional)</Label>
-                <Input
+                <DateInput
                   id="dueDate"
-                  type="date"
                   value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDueDate(value);
+                    if (value && !isDueDateNotBeforeToday(value)) {
+                      setDueDateError("A data de devolução não pode ser anterior a hoje");
+                    } else {
+                      setDueDateError("");
+                    }
+                  }}
+                  error={dueDateError}
+                  hint={dueDateError ? undefined : "Padrão: 14 dias a partir de hoje"}
                 />
-                <p className="text-xs text-slate-500">Padrão: 14 dias a partir de hoje</p>
               </div>
 
               <Button
                 type="submit"
                 className="w-full sm:w-auto"
-                disabled={submitting || !userId || !copyId}
+                disabled={submitting || !userId || !copyId || !!dueDateError}
               >
                 {submitting ? "Emprestando..." : "Confirmar empréstimo"}
               </Button>

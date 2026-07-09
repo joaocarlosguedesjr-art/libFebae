@@ -50,6 +50,14 @@ export async function createLoan(copyId: string, userId: string, dueDate?: Date)
   const loanDays = await getLoanDaysDefault();
   const finalDueDate = dueDate ?? addDays(new Date(), loanDays);
 
+  if (dueDate) {
+    const chosen = startOfDay(dueDate);
+    const today = startOfDay(new Date());
+    if (chosen < today) {
+      throw new Error("A data de devolução não pode ser anterior a hoje");
+    }
+  }
+
   const loan = await prisma.$transaction(async (tx) => {
     const created = await tx.loan.create({
       data: {
