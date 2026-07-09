@@ -33,45 +33,6 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-.date-input {
-  color-scheme: light;
-}
-
-.date-input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.85;
-  padding: 0.2rem;
-  border-radius: 0.375rem;
-  filter: sepia(0.35) saturate(2.2) hue-rotate(350deg) brightness(0.95);
-}
-
-.date-input::-webkit-calendar-picker-indicator:hover {
-  background: color-mix(in srgb, var(--color-brand-100) 80%, transparent);
-}
-
-.date-input::-webkit-datetime-edit {
-  padding: 0;
-}
-
-.date-input::-webkit-datetime-edit-fields-wrapper {
-  padding: 0;
-}
-
-.date-input::-webkit-datetime-edit-text,
-.date-input::-webkit-datetime-edit-month-field,
-.date-input::-webkit-datetime-edit-day-field,
-.date-input::-webkit-datetime-edit-year-field {
-  color: #44403c;
-  padding: 0 0.1rem;
-}
-
-.date-input:focus::-webkit-datetime-edit-month-field,
-.date-input:focus::-webkit-datetime-edit-day-field,
-.date-input:focus::-webkit-datetime-edit-year-field {
-  background: color-mix(in srgb, var(--color-brand-100) 70%, transparent);
-  border-radius: 0.25rem;
-}
-
 * {
   -webkit-tap-highlight-color: transparent;
 }

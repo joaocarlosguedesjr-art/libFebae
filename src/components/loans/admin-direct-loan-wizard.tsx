@@ -424,8 +424,7 @@ export function AdminDirectLoanWizard() {
                 <DateInput
                   id="dueDate"
                   value={dueDate}
-                  onChange={(e) => {
-                    const value = e.target.value;
+                  onChange={(value) => {
                     setDueDate(value);
                     if (value && !isDueDateNotBeforeToday(value)) {
                       setDueDateError("A data de devolução não pode ser anterior a hoje");
