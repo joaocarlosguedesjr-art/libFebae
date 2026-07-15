@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { copySchema } from "@/lib/validations";
+import { denyUnlessStaff, maybeQueueApproval } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -27,9 +28,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const body = await request.json();
   const parsed = copySchema.safeParse(body);
@@ -40,6 +40,20 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  const book = await prisma.book.findUnique({
+    where: { id: parsed.data.bookId },
+    select: { title: true },
+  });
+
+  const queued = await maybeQueueApproval({
+    session: session!,
+    type: "COPY_CREATE",
+    payload: parsed.data,
+    summary: `Novo exemplar ${parsed.data.code}${book ? ` — ${book.title}` : ""}`,
+    entityId: parsed.data.bookId,
+  });
+  if (queued) return queued;
 
   const copy = await prisma.copy.create({
     data: parsed.data,

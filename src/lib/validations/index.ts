@@ -42,7 +42,7 @@ export const signupRequestSchema = z.object({
   email: z.string().email("E-mail inválido"),
   cpf: cpfField,
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  role: z.enum(["ADMIN", "READER"]).default("READER"),
+  role: z.enum(["ADMIN", "BIBLIOTECARIO", "READER"]).default("READER"),
   dataSubjectInformed: z
     .boolean()
     .refine((v) => v === true, {
@@ -216,6 +216,12 @@ export const appConfigSchema = z.object({
     .string()
     .min(1, "Informe o caminho da logo")
     .regex(/^\//, "Use caminho relativo começando com /, ex.: /feabe-logo.jpeg"),
+  librarianRequiresApproval: z.boolean().optional().default(true),
+});
+
+export const approvalReviewSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  adminNote: z.string().max(500).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

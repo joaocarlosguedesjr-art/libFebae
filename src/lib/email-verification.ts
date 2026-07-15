@@ -164,6 +164,53 @@ export async function resendEmailVerification(
   );
 }
 
+export async function validateEmailVerificationForApproval(verificationId: string, code: string) {
+  const normalizedCode = code.replace(/\D/g, "");
+
+  if (normalizedCode.length !== 6) {
+    throw new Error("Informe o código de 6 dígitos");
+  }
+
+  const verification = await prisma.emailVerification.findUnique({
+    where: { id: verificationId },
+  });
+
+  if (!verification) {
+    throw new Error("Verificação inválida ou expirada");
+  }
+
+  if (verification.verifiedAt) {
+    throw new Error("Este código já foi utilizado");
+  }
+
+  if (verification.expiresAt < new Date()) {
+    throw new Error("Código expirado. Solicite um novo código.");
+  }
+
+  if (verification.attempts >= MAX_ATTEMPTS) {
+    throw new Error("Número máximo de tentativas excedido. Solicite um novo código.");
+  }
+
+  const codeHash = hashOtp(normalizedCode, verification.email);
+  const valid = codeHash === verification.codeHash;
+
+  if (!valid) {
+    await prisma.emailVerification.update({
+      where: { id: verificationId },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new Error("Código incorreto");
+  }
+
+  const signupPayload = JSON.parse(decryptPayload(verification.payload)) as SignupPayload;
+
+  return {
+    email: verification.email,
+    name: signupPayload.name,
+    role: signupPayload.role,
+  };
+}
+
 export async function confirmEmailVerification(verificationId: string, code: string) {
   const normalizedCode = code.replace(/\D/g, "");
 

@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
+import { isAdmin, isStaff } from "@/lib/roles";
 
-const adminPaths = [
+const staffPaths = [
   "/usuarios",
   "/acervo/novo",
   "/emprestimos/novo",
@@ -10,6 +11,8 @@ const adminPaths = [
   "/lgpd/solicitacoes",
   "/configuracoes",
 ];
+
+const adminOnlyPaths = ["/aprovacoes"];
 
 const { auth } = NextAuth(authConfig);
 
@@ -25,11 +28,21 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  const isAdminRoute = adminPaths.some((path) =>
-    req.nextUrl.pathname.startsWith(path)
+  const role = req.auth.user?.role;
+
+  const isAdminOnlyRoute = adminOnlyPaths.some((path) =>
+    req.nextUrl.pathname.startsWith(path),
   );
 
-  if (isAdminRoute && req.auth.user?.role !== "ADMIN") {
+  if (isAdminOnlyRoute && !isAdmin(role)) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
+  const isStaffRoute = staffPaths.some((path) =>
+    req.nextUrl.pathname.startsWith(path),
+  );
+
+  if (isStaffRoute && !isStaff(role)) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
@@ -46,6 +59,7 @@ export const config = {
     "/meus-dados/:path*",
     "/lgpd/:path*",
     "/configuracoes/:path*",
+    "/aprovacoes/:path*",
     "/privacidade/aceite",
   ],
 };

@@ -33,6 +33,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     privacyPolicyVersion: config.privacyPolicyVersion,
     termsVersion: config.termsVersion,
     institutionLogoUrl: resolveLogoUrl(config.institutionLogoUrl),
+    librarianRequiresApproval: config.librarianRequiresApproval,
   };
 }
 

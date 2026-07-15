@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/responsive/page-header";
 
 import { formatBookCredit } from "@/lib/spiritist";
 import { fetchBooksPages } from "@/lib/client-books";
+import { isStaff } from "@/lib/roles";
 
 type Book = {
   id: string;
@@ -108,7 +109,7 @@ export default function AcervoPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isStaffUser = isStaff(session?.user?.role);
 
   useEffect(() => {
     async function fetchBooks() {
@@ -135,7 +136,7 @@ export default function AcervoPage() {
         title="Acervo"
         description={`${total || books.length} título(s)`}
         action={
-          isAdmin ? (
+          isStaffUser ? (
             <Link href="/acervo/novo">
               <Button size="sm" className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" />

@@ -90,7 +90,7 @@ export function CreateUserWizard({ mode, title }: CreateUserWizardProps) {
       email: formData.get("email") as string,
       cpf: cpfDigits || "",
       password: formData.get("password") as string,
-      role: mode === "admin" ? (formData.get("role") as "ADMIN" | "READER") : "READER",
+      role: mode === "admin" ? (formData.get("role") as "ADMIN" | "BIBLIOTECARIO" | "READER") : "READER",
       dataSubjectInformed: true,
       consentConfirmed: true,
     };
@@ -193,7 +193,8 @@ export function CreateUserWizard({ mode, title }: CreateUserWizardProps) {
                 <Label htmlFor="role">Perfil</Label>
                 <Select id="role" name="role" defaultValue="READER">
                   <option value="READER">Leitor</option>
-                  <option value="ADMIN">Bibliotecário (Admin)</option>
+                  <option value="BIBLIOTECARIO">Bibliotecário</option>
+                  <option value="ADMIN">Administrador</option>
                 </Select>
               </div>
             )}

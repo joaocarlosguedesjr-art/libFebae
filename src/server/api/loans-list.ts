@@ -3,6 +3,8 @@ import { maskCpf } from "@/lib/lgpd";
 import { prisma } from "@/lib/prisma";
 import { createLoan, maybeSyncOverdueLoans } from "@/lib/loans";
 import { loanSchema } from "@/lib/validations";
+import { isStaff } from "@/lib/roles";
+import { denyUnlessStaff } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -17,7 +19,7 @@ export async function GET(request: Request) {
   const status = searchParams.get("status");
   const circulating = searchParams.get("circulating") === "true";
   const userId =
-    session.user.role === "ADMIN"
+    isStaff(session.user.role)
       ? searchParams.get("userId")
       : session.user.id;
 
@@ -52,9 +54,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const body = await request.json();
   const parsed = loanSchema.safeParse(body);

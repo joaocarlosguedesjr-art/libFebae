@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { ExternalLink, Shield } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/responsive/page-header";
+import { isAdmin } from "@/lib/roles";
+import { handleStaffMutationResponse } from "@/lib/staff-mutation";
 
 type Settings = {
   loanDaysDefault: number;
@@ -22,6 +25,7 @@ type Settings = {
   privacyPolicyVersion: string;
   termsVersion: string;
   institutionLogoUrl: string;
+  librarianRequiresApproval: boolean;
 };
 
 const emptySettings: Settings = {
@@ -34,12 +38,15 @@ const emptySettings: Settings = {
   privacyPolicyVersion: "1.0",
   termsVersion: "1.0",
   institutionLogoUrl: "/feabe-logo.jpeg",
+  librarianRequiresApproval: true,
 };
 
 export default function ConfiguracoesPage() {
+  const { data: session } = useSession();
   const [settings, setSettings] = useState<Settings>(emptySettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const isAdminUser = isAdmin(session?.user?.role);
 
   useEffect(() => {
     async function load() {
@@ -51,6 +58,7 @@ export default function ConfiguracoesPage() {
           ...data,
           institutionAddress: data.institutionAddress ?? "",
           dpoName: data.dpoName ?? "",
+          librarianRequiresApproval: data.librarianRequiresApproval ?? true,
         });
       }
       setLoading(false);
@@ -70,19 +78,17 @@ export default function ConfiguracoesPage() {
 
     setSaving(false);
 
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.error ?? "Erro ao salvar configurações");
-      return;
-    }
+    const result = await handleStaffMutationResponse(res, "Configurações salvas.");
+    if (!result.ok) return;
 
-    const data = await res.json();
+    if (result.pending) return;
+
+    const data = result.data as Settings;
     setSettings({
       ...data,
       institutionAddress: data.institutionAddress ?? "",
       dpoName: data.dpoName ?? "",
     });
-    toast.success("Configurações salvas.");
   }
 
   function updateField<K extends keyof Settings>(key: K, value: Settings[K]) {
@@ -235,6 +241,32 @@ export default function ConfiguracoesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {isAdminUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Bibliotecário</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="flex cursor-pointer items-start gap-3">
+                <Checkbox
+                  id="librarianRequiresApproval"
+                  checked={settings.librarianRequiresApproval}
+                  onChange={(e) =>
+                    updateField("librarianRequiresApproval", e.target.checked)
+                  }
+                />
+                <div>
+                  <p className="font-medium text-slate-900">Exigir aprovação do administrador</p>
+                  <p className="text-sm text-slate-500">
+                    Quando ativo, ações do bibliotecário (exceto empréstimo direto) passam pela
+                    fila de aprovações. Desative para conceder autonomia total.
+                  </p>
+                </div>
+              </label>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

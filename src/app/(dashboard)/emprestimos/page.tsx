@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { isStaff } from "@/lib/roles";
 import { BellRing, ClipboardList, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -79,20 +80,20 @@ function isOpenLoan(loan: Loan) {
 
 function LoanActions({
   loan,
-  isAdmin,
+  isStaffUser,
   onRequestReturn,
   onConfirmReturn,
   onRenew,
 }: {
   loan: Loan;
-  isAdmin: boolean;
+  isStaffUser: boolean;
   onRequestReturn: (id: string) => void;
   onConfirmReturn: (id: string) => void;
   onRenew: (id: string) => void;
 }) {
   if (!isOpenLoan(loan)) return null;
 
-  if (isAdmin) {
+  if (isStaffUser) {
     return (
       <div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => onConfirmReturn(loan.id)}>
@@ -143,14 +144,14 @@ function LoanActions({
 
 function LoanCards({
   loans,
-  isAdmin,
+  isStaffUser,
   onRequestReturn,
   onConfirmReturn,
   onRenew,
   highlightReader,
 }: {
   loans: Loan[];
-  isAdmin: boolean;
+  isStaffUser: boolean;
   onRequestReturn: (id: string) => void;
   onConfirmReturn: (id: string) => void;
   onRenew: (id: string) => void;
@@ -170,7 +171,7 @@ function LoanCards({
                 <p className="mt-1 font-mono text-xs text-slate-500">
                   Exemplar: {loan.copy.code}
                 </p>
-                {isAdmin && (
+                {isStaffUser && (
                   <p
                     className={
                       highlightReader
@@ -181,7 +182,7 @@ function LoanCards({
                     Com: {loan.user.name}
                   </p>
                 )}
-                {!isAdmin && (
+                {!isStaffUser && (
                   <p className="mt-1 text-xs text-slate-500">{loan.user.email}</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -193,7 +194,7 @@ function LoanCards({
                 <LoanStatusBadge status={loan.status} />
                 <LoanActions
                   loan={loan}
-                  isAdmin={isAdmin}
+                  isStaffUser={isStaffUser}
                   onRequestReturn={onRequestReturn}
                   onConfirmReturn={onConfirmReturn}
                   onRenew={onRenew}
@@ -209,14 +210,14 @@ function LoanCards({
 
 function LoanTable({
   loans,
-  isAdmin,
+  isStaffUser,
   onRequestReturn,
   onConfirmReturn,
   onRenew,
   highlightReader,
 }: {
   loans: Loan[];
-  isAdmin: boolean;
+  isStaffUser: boolean;
   onRequestReturn: (id: string) => void;
   onConfirmReturn: (id: string) => void;
   onRenew: (id: string) => void;
@@ -228,7 +229,7 @@ function LoanTable({
         <TableRow>
           <TableHeader>Livro</TableHeader>
           <TableHeader>Exemplar</TableHeader>
-          {isAdmin && <TableHeader>Com quem está</TableHeader>}
+          {isStaffUser && <TableHeader>Com quem está</TableHeader>}
           <TableHeader>Retirada</TableHeader>
           <TableHeader>Prazo</TableHeader>
           <TableHeader>Status</TableHeader>
@@ -243,7 +244,7 @@ function LoanTable({
               <div className="text-xs text-slate-500">{loan.copy.book.author}</div>
             </TableCell>
             <TableCell className="font-mono text-xs">{loan.copy.code}</TableCell>
-            {isAdmin && (
+            {isStaffUser && (
               <TableCell className={highlightReader ? "font-medium text-brand-900" : ""}>
                 <div>{loan.user.name}</div>
                 <div className="text-xs text-slate-500">{loan.user.email}</div>
@@ -257,7 +258,7 @@ function LoanTable({
             <TableCell className="text-right">
               <LoanActions
                 loan={loan}
-                isAdmin={isAdmin}
+                isStaffUser={isStaffUser}
                 onRequestReturn={onRequestReturn}
                 onConfirmReturn={onConfirmReturn}
                 onRenew={onRenew}
@@ -277,12 +278,12 @@ export default function EmprestimosPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("");
   const [adminView, setAdminView] = useState<AdminView>("circulacao");
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isStaffUser = isStaff(session?.user?.role);
 
   async function loadLoans() {
     setLoading(true);
     const params = new URLSearchParams();
-    if (isAdmin && adminView === "circulacao") {
+    if (isStaffUser && adminView === "circulacao") {
       params.set("circulating", "true");
     } else if (filter) {
       params.set("status", filter);
@@ -293,7 +294,7 @@ export default function EmprestimosPage() {
   }
 
   async function loadRequests() {
-    const url = isAdmin
+    const url = isStaffUser
       ? "/api/loan-requests?status=PENDING"
       : "/api/loan-requests";
     const res = await fetch(url);
@@ -302,11 +303,11 @@ export default function EmprestimosPage() {
 
   useEffect(() => {
     loadLoans();
-  }, [filter, adminView, isAdmin]);
+  }, [filter, adminView, isStaffUser]);
 
   useEffect(() => {
     if (session?.user) loadRequests();
-  }, [session?.user, isAdmin]);
+  }, [session?.user, isStaffUser]);
 
   async function handleRequestReturn(loanId: string) {
     const res = await fetch(`/api/loans/${loanId}/request-return`, { method: "POST" });
@@ -369,14 +370,14 @@ export default function EmprestimosPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title={isAdmin ? "Empréstimos" : "Meus empréstimos"}
+        title={isStaffUser ? "Empréstimos" : "Meus empréstimos"}
         description={
-          isAdmin && adminView === "circulacao"
+          isStaffUser && adminView === "circulacao"
             ? `${loans.length} livro(s) em circulação${pendingReturns ? ` · ${pendingReturns} aguardando devolução` : ""}`
             : `${loans.length} registro(s)`
         }
         action={
-          isAdmin ? (
+          isStaffUser ? (
             <div className="flex flex-wrap gap-2">
               <Link href="/emprestimos/solicitacoes">
                 <Button size="sm" variant="outline" className="w-full sm:w-auto">
@@ -411,15 +412,15 @@ export default function EmprestimosPage() {
         }
       />
 
-      {isAdmin ? (
+      {isStaffUser ? (
         <FilterBar options={adminViews} value={adminView} onChange={setAdminView} />
       ) : null}
 
-      {isAdmin && adminView === "historico" && (
+      {isStaffUser && adminView === "historico" && (
         <FilterBar options={filters} value={filter} onChange={setFilter} />
       )}
 
-      {!isAdmin && requests.some((r) => r.status === "PENDING") && (
+      {!isStaffUser && requests.some((r) => r.status === "PENDING") && (
         <Card className="border-brand-200 bg-brand-50">
           <CardContent className="p-4 text-sm text-brand-900">
             Você tem solicitação(ões) aguardando análise do bibliotecário.
@@ -427,7 +428,7 @@ export default function EmprestimosPage() {
         </Card>
       )}
 
-      {!isAdmin && requests.length > 0 && (
+      {!isStaffUser && requests.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-slate-900">Minhas solicitações</h2>
           {requests.slice(0, 5).map((req) => (
@@ -461,7 +462,7 @@ export default function EmprestimosPage() {
         </div>
       ) : loans.length === 0 ? (
         <p className="py-12 text-center text-slate-500">
-          {isAdmin && adminView === "circulacao"
+          {isStaffUser && adminView === "circulacao"
             ? "Nenhum livro em circulação no momento."
             : "Nenhum empréstimo encontrado."}
         </p>
@@ -469,19 +470,19 @@ export default function EmprestimosPage() {
         <>
           <LoanCards
             loans={loans}
-            isAdmin={!!isAdmin}
+            isStaffUser={!!isStaffUser}
             onRequestReturn={handleRequestReturn}
             onConfirmReturn={handleConfirmReturn}
             onRenew={handleRenew}
-            highlightReader={isAdmin && adminView === "circulacao"}
+            highlightReader={isStaffUser && adminView === "circulacao"}
           />
           <LoanTable
             loans={loans}
-            isAdmin={!!isAdmin}
+            isStaffUser={!!isStaffUser}
             onRequestReturn={handleRequestReturn}
             onConfirmReturn={handleConfirmReturn}
             onRenew={handleRenew}
-            highlightReader={isAdmin && adminView === "circulacao"}
+            highlightReader={isStaffUser && adminView === "circulacao"}
           />
         </>
       )}

@@ -10,7 +10,27 @@ datasource db {
 
 enum Role {
   ADMIN
+  BIBLIOTECARIO
   READER
+}
+
+enum ApprovalType {
+  BOOK_CREATE
+  BOOK_UPDATE
+  BOOK_DELETE
+  COPY_CREATE
+  LOAN_RETURN
+  LOAN_REQUEST_REVIEW
+  LOAN_REMINDER_SEND
+  USER_CREATE
+  SETTINGS_UPDATE
+  LGPD_REQUEST_UPDATE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum CopyStatus {
@@ -95,6 +115,8 @@ model User {
   consentRecordedBy   User?                @relation("UserConsent", fields: [consentRecordedById], references: [id], onDelete: SetNull)
   consentedUsers      User[]               @relation("UserConsent")
   dataSubjectRequests DataSubjectRequest[]
+  approvalRequests    ApprovalRequest[] @relation("ApprovalRequestedBy")
+  reviewedApprovals   ApprovalRequest[] @relation("ApprovalReviewedBy")
 }
 
 model Account {
@@ -182,16 +204,18 @@ model Copy {
 }
 
 model Loan {
-  id          String       @id @default(cuid())
-  copyId      String
-  userId      String
-  loanDate    DateTime     @default(now())
-  dueDate     DateTime
-  returnDate  DateTime?
-  status      LoanStatus   @default(ACTIVE)
-  copy        Copy         @relation(fields: [copyId], references: [id])
-  user        User         @relation(fields: [userId], references: [id])
-  loanRequest LoanRequest?
+  id                 String       @id @default(cuid())
+  copyId             String
+  userId             String
+  loanDate           DateTime     @default(now())
+  dueDate            DateTime
+  returnDate         DateTime?
+  status             LoanStatus   @default(ACTIVE)
+  /// Quando o lembrete de vencimento (2 dias) foi enviado para este prazo.
+  dueReminderSentAt  DateTime?
+  copy               Copy         @relation(fields: [copyId], references: [id])
+  user               User         @relation(fields: [userId], references: [id])
+  loanRequest        LoanRequest?
 }
 
 model LoanRequest {
@@ -218,16 +242,40 @@ model LoanRequest {
 }
 
 model AppConfig {
-  id                   String @id @default("default")
-  loanDaysDefault      Int    @default(14)
-  institutionName      String @default("Centro Espírita")
-  institutionAddress   String?
-  institutionEmail     String @default("privacidade@biblioteca.local")
-  dpoName              String?
-  dpoEmail             String @default("privacidade@biblioteca.local")
-  privacyPolicyVersion String  @default("1.0")
-  termsVersion         String  @default("1.0")
-  institutionLogoUrl   String? @default("/feabe-logo.jpeg")
+  id                         String @id @default("default")
+  loanDaysDefault            Int    @default(14)
+  institutionName            String @default("Centro Espírita")
+  institutionAddress         String?
+  institutionEmail           String @default("privacidade@biblioteca.local")
+  dpoName                    String?
+  dpoEmail                   String @default("privacidade@biblioteca.local")
+  privacyPolicyVersion       String  @default("1.0")
+  termsVersion               String  @default("1.0")
+  institutionLogoUrl         String? @default("/feabe-logo.jpeg")
+  /// Quando true, ações do bibliotecário (exceto empréstimo direto) exigem aprovação do admin.
+  librarianRequiresApproval  Boolean @default(true)
+}
+
+model ApprovalRequest {
+  id            String         @id @default(cuid())
+  type          ApprovalType
+  status        ApprovalStatus @default(PENDING)
+  summary       String
+  payload       String
+  entityId      String?
+  requestedById String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  adminNote     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  requestedBy User  @relation("ApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewedBy  User? @relation("ApprovalReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+  @@index([requestedById])
 }
 
 model DataSubjectRequest {

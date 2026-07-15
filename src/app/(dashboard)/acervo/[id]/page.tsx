@@ -15,6 +15,8 @@ import { CopyStatus, SpiritWorkType } from "@/generated/prisma";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatBookCredit, formatWorkType } from "@/lib/spiritist";
+import { isStaff } from "@/lib/roles";
+import { handleStaffMutationResponse } from "@/lib/staff-mutation";
 
 type Copy = {
   id: string;
@@ -64,7 +66,7 @@ export default function LivroDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [adding, setAdding] = useState(false);
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isStaffUser = isStaff(session?.user?.role);
   const availableCopies = book?.copies.filter((c) => c.status === "AVAILABLE").length ?? 0;
 
   async function loadBook() {
@@ -86,25 +88,20 @@ export default function LivroDetalhePage() {
       body: JSON.stringify({ bookId: id, code: newCode.trim() }),
     });
     setAdding(false);
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.error ?? "Erro ao adicionar exemplar");
-      return;
+    const result = await handleStaffMutationResponse(res, "Exemplar adicionado!");
+    if (!result.ok) return;
+    if (!result.pending) {
+      setNewCode("");
+      loadBook();
     }
-    toast.success("Exemplar adicionado!");
-    setNewCode("");
-    loadBook();
   }
 
   async function deleteBook() {
     if (!confirm("Excluir esta obra e todos os exemplares?")) return;
     const res = await fetch(`/api/books/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      toast.error("Erro ao excluir obra");
-      return;
-    }
-    toast.success("Obra excluída");
-    router.push("/acervo");
+    const result = await handleStaffMutationResponse(res, "Obra excluída");
+    if (!result.ok) return;
+    if (!result.pending) router.push("/acervo");
   }
 
   if (loading) {
@@ -133,7 +130,7 @@ export default function LivroDetalhePage() {
             </Badge>
           )}
         </div>
-        {isAdmin && (
+        {isStaffUser && (
           <div className="flex shrink-0 flex-col gap-2">
             {availableCopies > 0 && (
               <Link href={`/emprestimos/novo?bookId=${book.id}`}>
@@ -179,7 +176,7 @@ export default function LivroDetalhePage() {
               <p className="text-slate-600">{book.synopsis}</p>
             </div>
           )}
-          {book.notes && isAdmin && (
+          {book.notes && isStaffUser && (
             <div className="pt-2">
               <p className="font-medium text-slate-700">Observações</p>
               <p className="text-slate-600">{book.notes}</p>
@@ -216,7 +213,7 @@ export default function LivroDetalhePage() {
             ))
           )}
 
-          {isAdmin && (
+          {isStaffUser && (
             <div className="flex gap-2 pt-2">
               <div className="flex-1 space-y-1">
                 <Label htmlFor="code">Novo exemplar</Label>

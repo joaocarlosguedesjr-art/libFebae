@@ -8,6 +8,7 @@ export type AppSettings = {
   privacyPolicyVersion: string;
   termsVersion: string;
   institutionLogoUrl: string;
+  librarianRequiresApproval: boolean;
 };
 
 export type LegalConfig = AppSettings;

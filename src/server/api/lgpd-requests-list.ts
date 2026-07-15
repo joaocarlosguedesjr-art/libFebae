@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dataSubjectRequestSchema } from "@/lib/validations";
+import { isStaff } from "@/lib/roles";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -10,10 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const where =
-    session.user.role === "ADMIN"
-      ? {}
-      : { userId: session.user.id };
+  const where = isStaff(session.user.role) ? {} : { userId: session.user.id };
 
   const requests = await prisma.dataSubjectRequest.findMany({
     where,

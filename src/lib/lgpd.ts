@@ -33,6 +33,7 @@ export async function getLegalConfig(): Promise<LegalConfig> {
       privacyPolicyVersion: DEFAULT_PRIVACY_VERSION,
       termsVersion: DEFAULT_TERMS_VERSION,
       institutionLogoUrl: INSTITUTION_DEFAULTS.institutionLogoUrl,
+      librarianRequiresApproval: true,
     };
   }
 }

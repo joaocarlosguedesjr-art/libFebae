@@ -1,12 +1,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { denyUnlessStaff } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";

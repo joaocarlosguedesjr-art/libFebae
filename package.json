@@ -1,6 +1,6 @@
 {
   "name": "biblioteca-app",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": ">=20.18.0"
@@ -31,7 +31,15 @@
     "catalog:sync:dry": "node scripts/with-env.mjs tsx scripts/sync-feabe-catalog-db.ts --plan",
     "dns:verify": "node scripts/verify-dns.mjs",
     "catalog:import": "node scripts/with-env.mjs tsx scripts/import-feabe-catalog.ts",
-    "catalog:import:dry": "node scripts/with-env.mjs tsx scripts/import-feabe-catalog.ts --dry-run"
+    "catalog:import:dry": "node scripts/with-env.mjs tsx scripts/import-feabe-catalog.ts --dry-run",
+    "catalog:enrich-web:plan": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts --plan",
+    "catalog:enrich-web": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts",
+    "catalog:enrich-web:resume": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts --resume",
+    "catalog:enrich-web:apply": "node scripts/with-env.mjs tsx scripts/apply-book-enrichment.ts",
+    "catalog:enrich-web:apply:dry": "node scripts/with-env.mjs tsx scripts/apply-book-enrichment.ts --dry-run",
+    "catalog:enrich-web:chico": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts --medium chico",
+    "catalog:enrich-web:chico:plan": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts --medium chico --plan",
+    "catalog:enrich-web:chico:resume": "node scripts/with-env.mjs tsx scripts/enrich-books-web.ts --medium chico --resume"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

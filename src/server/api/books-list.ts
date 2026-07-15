@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { bookSchema } from "@/lib/validations";
 import { sanitizeCoverImageUrl } from "@/lib/safe-image-url";
+import { denyUnlessStaff, maybeQueueApproval } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -69,9 +70,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const body = await request.json();
   const parsed = bookSchema.safeParse(body);
@@ -82,6 +82,14 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  const queued = await maybeQueueApproval({
+    session: session!,
+    type: "BOOK_CREATE",
+    payload: parsed.data,
+    summary: `Cadastrar livro: ${parsed.data.title}`,
+  });
+  if (queued) return queued;
 
   const book = await prisma.book.create({
     data: bookInputToPrismaData(parsed.data),

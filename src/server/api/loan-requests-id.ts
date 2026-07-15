@@ -4,16 +4,17 @@ import {
   cancelLoanRequest,
   rejectLoanRequest,
 } from "@/lib/loan-requests";
+import { prisma } from "@/lib/prisma";
 import { loanRequestReviewSchema } from "@/lib/validations";
+import { denyUnlessStaff, maybeQueueApproval } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const { id } = await context.params;
   const body = await request.json();
@@ -28,6 +29,31 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { action, copyId, adminNote, dueDate } = parsed.data;
 
+  const loanRequest = await prisma.loanRequest.findUnique({
+    where: { id },
+    include: { book: true, user: { select: { name: true } } },
+  });
+
+  if (!loanRequest) {
+    return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+  }
+
+  const actionLabel = action === "approve" ? "Aprovar" : "Rejeitar";
+  const queued = await maybeQueueApproval({
+    session: session!,
+    type: "LOAN_REQUEST_REVIEW",
+    payload: {
+      requestId: id,
+      action,
+      copyId,
+      adminNote,
+      dueDate,
+    },
+    summary: `${actionLabel} solicitação: ${loanRequest.book.title} — ${loanRequest.user.name}`,
+    entityId: id,
+  });
+  if (queued) return queued;
+
   try {
     if (action === "approve") {
       if (!copyId) {
@@ -35,14 +61,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
       const result = await approveLoanRequest(
         id,
-        session.user.id,
+        session!.user.id,
         copyId,
         dueDate ? new Date(dueDate) : undefined
       );
       return NextResponse.json(result);
     }
 
-    const result = await rejectLoanRequest(id, session.user.id, adminNote);
+    const result = await rejectLoanRequest(id, session!.user.id, adminNote);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { renewLoan } from "@/lib/loans";
 import { prisma } from "@/lib/prisma";
+import { isStaff } from "@/lib/roles";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
@@ -21,7 +22,7 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Empréstimo não encontrado" }, { status: 404 });
   }
 
-  if (session.user.role !== "ADMIN" && loan.userId !== session.user.id) {
+  if (!isStaff(session.user.role) && loan.userId !== session.user.id) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 

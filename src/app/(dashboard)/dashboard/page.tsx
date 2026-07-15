@@ -6,6 +6,7 @@ import { AlertTriangle, BookOpen, Repeat, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
+import { isStaff } from "@/lib/roles";
 
 type Stats = {
   totalBooks: number;
@@ -21,10 +22,10 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isStaffUser = isStaff(session?.user?.role);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isStaffUser) {
       setLoading(false);
       return;
     }
@@ -33,9 +34,9 @@ export default function DashboardPage() {
       .then((res) => res.json())
       .then(setStats)
       .finally(() => setLoading(false));
-  }, [isAdmin]);
+  }, [isStaffUser]);
 
-  if (!isAdmin) {
+  if (!isStaffUser) {
     return (
       <div className="space-y-6">
         <div>

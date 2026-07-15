@@ -3,7 +3,12 @@ import { addDays } from "./utils";
 import { CopyStatus, LoanStatus } from "@/generated/prisma";
 import { createLoanActionToken } from "@/lib/loan-action-token";
 import { getAppBaseUrl } from "@/lib/branding";
-import { sendLoanReminderEmail } from "@/lib/email";
+import {
+  notifyInBackground,
+  sendLoanConfirmationEmail,
+  sendLoanReminderEmail,
+  sendLoanReturnConfirmationEmail,
+} from "@/lib/email";
 
 const RENEW_WINDOW_DAYS = 2;
 
@@ -18,7 +23,45 @@ export function canRenewLoan(dueDate: Date) {
   const due = startOfDay(dueDate);
   const diffMs = due.getTime() - now.getTime();
   const remainingDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-  return remainingDays <= RENEW_WINDOW_DAYS;
+  return remainingDays >= 0 && remainingDays <= RENEW_WINDOW_DAYS;
+}
+
+function notifyLoanCreated(loan: {
+  user: { name: string; email: string };
+  copy: { code: string; book: { title: string; author: string } };
+  loanDate: Date;
+  dueDate: Date;
+}) {
+  notifyInBackground(() =>
+    sendLoanConfirmationEmail({
+      to: loan.user.email,
+      name: loan.user.name,
+      title: loan.copy.book.title,
+      author: loan.copy.book.author,
+      copyCode: loan.copy.code,
+      loanDate: loan.loanDate,
+      dueDate: loan.dueDate,
+    }),
+  );
+}
+
+function notifyLoanReturned(loan: {
+  user: { name: string; email: string };
+  copy: { code: string; book: { title: string; author: string } };
+  returnDate: Date | null;
+}) {
+  if (!loan.returnDate) return;
+
+  notifyInBackground(() =>
+    sendLoanReturnConfirmationEmail({
+      to: loan.user.email,
+      name: loan.user.name,
+      title: loan.copy.book.title,
+      author: loan.copy.book.author,
+      copyCode: loan.copy.code,
+      returnDate: loan.returnDate!,
+    }),
+  );
 }
 
 export async function getLoanDaysDefault() {
@@ -80,6 +123,7 @@ export async function createLoan(copyId: string, userId: string, dueDate?: Date)
     return created;
   });
 
+  notifyLoanCreated(loan);
   return loan;
 }
 
@@ -118,7 +162,7 @@ export async function requestReturnLoan(loanId: string) {
   });
 }
 
-/** Confirma devolução física — somente via admin. */
+/** Confirma devolução física — somente via staff. */
 export async function confirmReturnLoan(loanId: string) {
   const loan = await prisma.loan.findUnique({
     where: { id: loanId },
@@ -141,8 +185,8 @@ export async function confirmReturnLoan(loanId: string) {
     throw new Error("Este empréstimo não pode ser devolvido");
   }
 
-  return prisma.$transaction(async (tx) => {
-    const updated = await tx.loan.update({
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.loan.update({
       where: { id: loanId },
       data: {
         returnDate: new Date(),
@@ -159,8 +203,11 @@ export async function confirmReturnLoan(loanId: string) {
       data: { status: CopyStatus.AVAILABLE },
     });
 
-    return updated;
+    return result;
   });
+
+  notifyLoanReturned(updated);
+  return updated;
 }
 
 /** @deprecated Use confirmReturnLoan — mantido para compatibilidade de imports. */
@@ -192,6 +239,7 @@ export async function renewLoan(loanId: string) {
     where: { id: loanId },
     data: {
       dueDate: addDays(loan.dueDate, loanDays),
+      dueReminderSentAt: null,
     },
     include: {
       copy: { include: { book: true } },
@@ -202,15 +250,45 @@ export async function renewLoan(loanId: string) {
   return updated;
 }
 
-export async function sendDueSoonLoanReminders() {
-  const now = new Date();
-  const limitDate = addDays(now, RENEW_WINDOW_DAYS);
+async function sendReminderForLoan(loan: {
+  id: string;
+  dueDate: Date;
+  user: { id: string; name: string; email: string };
+  copy: { book: { title: string } };
+}) {
   const baseUrl = getAppBaseUrl();
+  const renewToken = createLoanActionToken({
+    loanId: loan.id,
+    userId: loan.user.id,
+    action: "renew",
+  });
+  const returnToken = createLoanActionToken({
+    loanId: loan.id,
+    userId: loan.user.id,
+    action: "request-return",
+  });
 
+  await sendLoanReminderEmail({
+    to: loan.user.email,
+    name: loan.user.name,
+    title: loan.copy.book.title,
+    dueDate: loan.dueDate,
+    renewUrl: `${baseUrl}/api/loans/action?token=${encodeURIComponent(renewToken)}`,
+    returnUrl: `${baseUrl}/api/loans/action?token=${encodeURIComponent(returnToken)}`,
+    loansUrl: `${baseUrl}/emprestimos`,
+  });
+
+  await prisma.loan.update({
+    where: { id: loan.id },
+    data: { dueReminderSentAt: new Date() },
+  });
+}
+
+export async function sendDueSoonLoanReminders() {
   const loans = await prisma.loan.findMany({
     where: {
       status: LoanStatus.ACTIVE,
-      dueDate: { gte: now, lte: limitDate },
+      dueReminderSentAt: null,
     },
     include: {
       copy: { include: { book: true } },
@@ -219,32 +297,15 @@ export async function sendDueSoonLoanReminders() {
     orderBy: { dueDate: "asc" },
   });
 
-  let sent = 0;
-  for (const loan of loans) {
-    const renewToken = createLoanActionToken({
-      loanId: loan.id,
-      userId: loan.user.id,
-      action: "renew",
-    });
-    const returnToken = createLoanActionToken({
-      loanId: loan.id,
-      userId: loan.user.id,
-      action: "request-return",
-    });
+  const eligible = loans.filter((loan) => canRenewLoan(loan.dueDate));
 
-    await sendLoanReminderEmail({
-      to: loan.user.email,
-      name: loan.user.name,
-      title: loan.copy.book.title,
-      dueDate: loan.dueDate,
-      renewUrl: `${baseUrl}/api/loans/action?token=${encodeURIComponent(renewToken)}`,
-      returnUrl: `${baseUrl}/api/loans/action?token=${encodeURIComponent(returnToken)}`,
-      loansUrl: `${baseUrl}/emprestimos`,
-    });
+  let sent = 0;
+  for (const loan of eligible) {
+    await sendReminderForLoan(loan);
     sent += 1;
   }
 
-  return { sent, total: loans.length };
+  return { sent, total: eligible.length };
 }
 
 export async function syncOverdueLoans() {
@@ -259,7 +320,24 @@ export async function syncOverdueLoans() {
 }
 
 const OVERDUE_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const REMINDER_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 let lastOverdueSyncAt = 0;
+let lastReminderSyncAt = 0;
+
+async function maybeSendDueSoonReminders() {
+  const now = Date.now();
+  if (now - lastReminderSyncAt < REMINDER_SYNC_INTERVAL_MS) return;
+  lastReminderSyncAt = now;
+
+  try {
+    await sendDueSoonLoanReminders();
+  } catch (error) {
+    console.error(
+      "[loans] lembrete automático:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
 
 /** Evita escrita no banco em todo GET de empréstimos/estatísticas */
 export async function maybeSyncOverdueLoans() {
@@ -267,4 +345,5 @@ export async function maybeSyncOverdueLoans() {
   if (now - lastOverdueSyncAt < OVERDUE_SYNC_INTERVAL_MS) return;
   lastOverdueSyncAt = now;
   await syncOverdueLoans();
+  await maybeSendDueSoonReminders();
 }

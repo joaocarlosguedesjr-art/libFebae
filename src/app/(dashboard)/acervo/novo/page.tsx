@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SPIRITIST_GENRES, SPIRIT_WORK_TYPES } from "@/lib/spiritist";
+import { handleStaffMutationResponse } from "@/lib/staff-mutation";
 
 function emptyToUndefined(value: FormDataEntryValue | null) {
   const str = String(value ?? "").trim();
@@ -58,15 +59,15 @@ export default function NovoLivroPage() {
 
     setSubmitting(false);
 
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.error ?? "Erro ao cadastrar obra");
+    const result = await handleStaffMutationResponse<{ id: string }>(res, "Obra cadastrada!");
+    if (!result.ok) return;
+
+    if (result.pending) {
+      router.push("/acervo");
       return;
     }
 
-    const book = await res.json();
-    toast.success("Obra cadastrada!");
-    router.push(`/acervo/${book.id}`);
+    router.push(`/acervo/${result.data?.id}`);
   }
 
   return (

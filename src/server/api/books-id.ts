@@ -3,6 +3,7 @@ import { bookInputToPrismaData } from "@/lib/books";
 import { prisma } from "@/lib/prisma";
 import { bookSchema } from "@/lib/validations";
 import { sanitizeCoverImageUrl } from "@/lib/safe-image-url";
+import { denyUnlessStaff, maybeQueueApproval } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
@@ -49,9 +50,8 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function PUT(request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const { id } = await params;
   const body = await request.json();
@@ -63,6 +63,15 @@ export async function PUT(request: Request, { params }: Params) {
       { status: 400 }
     );
   }
+
+  const queued = await maybeQueueApproval({
+    session: session!,
+    type: "BOOK_UPDATE",
+    payload: { bookId: id, data: parsed.data },
+    summary: `Editar livro: ${parsed.data.title}`,
+    entityId: id,
+  });
+  if (queued) return queued;
 
   const prismaData = bookInputToPrismaData(parsed.data);
   const { categories, ...bookData } = prismaData;
@@ -89,11 +98,24 @@ export async function PUT(request: Request, { params }: Params) {
 
 export async function DELETE(_request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const { id } = await params;
+
+  const existing = await prisma.book.findUnique({ where: { id }, select: { title: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Livro não encontrado" }, { status: 404 });
+  }
+
+  const queued = await maybeQueueApproval({
+    session: session!,
+    type: "BOOK_DELETE",
+    payload: { bookId: id },
+    summary: `Excluir livro: ${existing.title}`,
+    entityId: id,
+  });
+  if (queued) return queued;
 
   await prisma.book.delete({ where: { id } });
   return NextResponse.json({ success: true });

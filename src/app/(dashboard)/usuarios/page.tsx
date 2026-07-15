@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/responsive/page-header";
 import { maskCpf } from "@/lib/cpf";
+import { roleLabel } from "@/lib/roles";
+import type { UserRole } from "@/lib/roles";
 import {
   Table,
   TableBody,
@@ -24,7 +26,7 @@ type User = {
   name: string;
   email: string;
   cpf: string | null;
-  role: "ADMIN" | "READER";
+  role: UserRole;
   _count: { loans: number };
 };
 
@@ -40,8 +42,8 @@ function UserCards({ users }: { users: User[] }) {
               {user.cpf && <p className="text-xs text-slate-500">CPF: {maskCpf(user.cpf)}</p>}
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Badge variant={user.role === "ADMIN" ? "secondary" : "default"}>
-                {user.role === "ADMIN" ? "Admin" : "Leitor"}
+              <Badge variant={user.role === "READER" ? "default" : "secondary"}>
+                {roleLabel(user.role)}
               </Badge>
               <span className="text-xs text-slate-500">
                 {user._count.loans} empréstimo(s)
@@ -73,8 +75,8 @@ function UserTable({ users }: { users: User[] }) {
             <TableCell>{user.email}</TableCell>
             <TableCell>{user.cpf ? maskCpf(user.cpf) : "—"}</TableCell>
             <TableCell>
-              <Badge variant={user.role === "ADMIN" ? "secondary" : "default"}>
-                {user.role === "ADMIN" ? "Admin" : "Leitor"}
+              <Badge variant={user.role === "READER" ? "default" : "secondary"}>
+                {roleLabel(user.role)}
               </Badge>
             </TableCell>
             <TableCell className="text-right">{user._count.loans}</TableCell>

@@ -2,13 +2,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { maybeSyncOverdueLoans } from "@/lib/loans";
 import { countPendingLoanRequests } from "@/lib/loan-requests";
+import { denyUnlessStaff } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   await maybeSyncOverdueLoans();
 

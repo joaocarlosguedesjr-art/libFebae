@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { createLoanRequest, listLoanRequests } from "@/lib/loan-requests";
 import { loanRequestCreateSchema } from "@/lib/validations";
+import { isStaff } from "@/lib/roles";
 import type { LoanRequestStatus } from "@/generated/prisma";
 import { NextResponse } from "next/server";
 
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") as LoanRequestStatus | null;
 
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin = isStaff(session.user.role);
   const requests = await listLoanRequests({
     userId: isAdmin ? undefined : session.user.id,
     status: status ?? undefined,

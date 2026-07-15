@@ -126,6 +126,36 @@ const KARDEC_TITLES: Record<string, { synopsis: string; year: number; publisher:
     year: 1859,
     publisher: "FEB",
   },
+  "a obsessao": {
+    synopsis:
+      "Compilação de ensinamentos sobre a obsessão espiritual, suas causas, efeitos e os meios de desobsessão, com orientações para o estudo e a prática espírita.",
+    year: 1865,
+    publisher: "FEB",
+  },
+  "coletanea de preces espiritas": {
+    synopsis:
+      "Reunião de preces espíritas para uso no culto doméstico e nas reuniões mediúnicas, com invocações, ações de graças e pedidos de auxílio espiritual.",
+    year: 1865,
+    publisher: "FEB",
+  },
+  "definicoes espiritas": {
+    synopsis:
+      "Vocabulário de termos e expressões usados na Doutrina Espírita, com definições claras para orientar o estudo e uniformizar a linguagem espírita.",
+    year: 1865,
+    publisher: "FEB",
+  },
+  "iniciacao espirita": {
+    synopsis:
+      "Introdução ao estudo da Doutrina Espírita, apresentando noções fundamentais sobre Deus, o universo, os Espíritos e as leis morais que regem a vida.",
+    year: 1865,
+    publisher: "FEB",
+  },
+  "viagem espirita": {
+    synopsis:
+      "Relato de viagem espiritual em que o codificador descreve observações sobre o mundo espiritual e reflexões sobre a conduta humana e a vida após a morte.",
+    year: 1865,
+    publisher: "FEB",
+  },
 };
 
 /** Autores espirituais e codificadores — ordem de prioridade na estante FEABE */

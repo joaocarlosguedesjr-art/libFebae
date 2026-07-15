@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { prisma } from "./prisma";
+import { isStaff } from "./roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -49,9 +50,9 @@ export async function requireAuth() {
   return session;
 }
 
-export async function requireAdmin() {
+export async function requireStaff() {
   const session = await requireAuth();
-  if (session.user.role !== "ADMIN") {
+  if (!isStaff(session.user.role)) {
     throw new Error("Acesso negado");
   }
   return session;

@@ -53,7 +53,10 @@ export function EmailVerificationForm({
     }
 
     setSubmitting(true);
-    const { error } = await apiPost(confirmUrl, {
+    const { data, error, status } = await apiPost<{
+      pendingApproval?: boolean;
+      message?: string;
+    }>(confirmUrl, {
       verificationId: session.verificationId,
       code: otp,
     });
@@ -61,6 +64,13 @@ export function EmailVerificationForm({
 
     if (error) {
       toast.error(error);
+      return;
+    }
+
+    if (status === 202 || data?.pendingApproval) {
+      toast.success(data?.message ?? "Cadastro enviado para aprovação do administrador.");
+      router.push("/usuarios");
+      router.refresh();
       return;
     }
 

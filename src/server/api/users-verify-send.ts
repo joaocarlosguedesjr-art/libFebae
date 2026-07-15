@@ -2,13 +2,13 @@ import { auth } from "@/lib/auth";
 import { requestEmailVerification } from "@/lib/email-verification";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { signupRequestSchema } from "@/lib/validations";
+import { denyUnlessStaff } from "@/lib/staff-access";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-  }
+  const denied = denyUnlessStaff(session);
+  if (denied) return denied;
 
   const limited = enforceRateLimit(request, RATE_LIMITS.adminEmailSend);
   if (limited) return limited;
@@ -34,9 +34,9 @@ export async function POST(request: Request) {
         cpf: cpf || null,
         role: data.role,
         consentMethod: "ADMIN_REGISTRATION",
-        adminId: session.user.id,
+        adminId: session!.user.id,
       },
-      session.user.id
+      session!.user.id
     );
 
     return NextResponse.json({

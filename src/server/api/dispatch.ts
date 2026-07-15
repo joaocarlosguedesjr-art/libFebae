@@ -29,6 +29,8 @@ import * as passwordResetSend from "@/server/api/password-reset-send";
 import * as passwordResetResend from "@/server/api/password-reset-resend";
 import * as passwordResetVerify from "@/server/api/password-reset-verify";
 import * as passwordResetComplete from "@/server/api/password-reset-complete";
+import * as approvalsList from "@/server/api/approvals-list";
+import * as approvalsId from "@/server/api/approvals-id";
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
@@ -198,6 +200,17 @@ export async function dispatchApi(
 
   if (root === "privacy" && second === "accept" && path.length === 2) {
     if (method === "POST") return privacyAccept.POST();
+    return methodNotAllowed();
+  }
+
+  if (root === "approvals" && path.length === 1) {
+    if (method === "GET") return approvalsList.GET(request);
+    return methodNotAllowed();
+  }
+
+  if (root === "approvals" && path.length === 2) {
+    if (method === "GET") return approvalsId.GET(request, asParams(ctx(second)));
+    if (method === "PATCH") return approvalsId.PATCH(request, asParams(ctx(second)));
     return methodNotAllowed();
   }
 

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { formatCpf, getLegalConfig, hasValidConsent, maskCpf } from "@/lib/lgpd";
 import { prisma } from "@/lib/prisma";
+import { isStaff } from "@/lib/roles";
 import { profileUpdateSchema } from "@/lib/validations";
 import { NextResponse } from "next/server";
 
@@ -60,7 +61,7 @@ export async function GET() {
     ...user,
     cpfMasked: maskCpf(user.cpf),
     cpfFormatted: user.cpf ? formatCpf(user.cpf) : null,
-    cpf: session.user.role === "ADMIN" ? user.cpf : undefined,
+    cpf: isStaff(session.user.role) ? user.cpf : undefined,
     consentValid: hasValidConsent(user, config),
     legalConfig: {
       privacyPolicyVersion: config.privacyPolicyVersion,

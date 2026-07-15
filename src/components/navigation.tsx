@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  ClipboardCheck,
   ClipboardList,
   Home,
   LogOut,
@@ -16,6 +17,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
+import type { UserRole } from "@/lib/roles";
+import { isAdmin, isStaff } from "@/lib/roles";
 
 export const LGPD_GOV_URL =
   "https://www.gov.br/defesa/pt-br/acesso-a-informacao/lei-geral-de-protecao-de-dados-pessoais-lgpd";
@@ -27,7 +30,7 @@ type NavItem = {
   external?: boolean;
 };
 
-const adminNav: NavItem[] = [
+const staffNav: NavItem[] = [
   { href: "/dashboard", label: "Início", icon: Home },
   { href: "/acervo", label: "Acervo", icon: BookOpen },
   { href: "/emprestimos", label: "Empréstimos", icon: Repeat },
@@ -35,6 +38,10 @@ const adminNav: NavItem[] = [
   { href: "/usuarios", label: "Usuários", icon: Users },
   { href: "/configuracoes", label: "Config.", icon: Settings },
   { href: LGPD_GOV_URL, label: "LGPD", icon: Shield, external: true },
+];
+
+const adminOnlyNav: NavItem[] = [
+  { href: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
 ];
 
 const readerNav: NavItem[] = [
@@ -45,8 +52,12 @@ const readerNav: NavItem[] = [
   { href: "/meus-dados", label: "Meus dados", icon: UserCircle },
 ];
 
-function useNavItems(role: "ADMIN" | "READER") {
-  return role === "ADMIN" ? adminNav : readerNav;
+function useNavItems(role: UserRole) {
+  if (!isStaff(role)) return readerNav;
+  if (isAdmin(role)) {
+    return [...staffNav.slice(0, 6), ...adminOnlyNav, ...staffNav.slice(6)];
+  }
+  return staffNav;
 }
 
 function isActive(pathname: string, href: string, external?: boolean) {
@@ -109,7 +120,7 @@ function NavItemLink({
 }
 
 /** Mobile (<768px): navegação inferior fixa */
-export function MobileNav({ role }: { role: "ADMIN" | "READER" }) {
+export function MobileNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
   const items = useNavItems(role);
 
@@ -133,7 +144,7 @@ export function MobileNav({ role }: { role: "ADMIN" | "READER" }) {
 }
 
 /** Tablet (768–1023px): barra superior horizontal */
-export function TabletNav({ role }: { role: "ADMIN" | "READER" }) {
+export function TabletNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
   const items = useNavItems(role);
 
@@ -157,7 +168,7 @@ export function TabletNav({ role }: { role: "ADMIN" | "READER" }) {
 }
 
 /** Desktop (≥1024px): sidebar lateral */
-export function DesktopNav({ role }: { role: "ADMIN" | "READER" }) {
+export function DesktopNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
   const items = useNavItems(role);
 
